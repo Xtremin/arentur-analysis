@@ -1,0 +1,2655 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model Ajustes {
+  Id_ajuste        Int        @default(autoincrement())
+  tipo_ajuste      Int
+  no_interno       String     @db.VarChar(7)
+  per_odo_ajustado Int        @map("período_ajustado")
+  no_retenci_n     String?    @map("no_retención") @db.VarChar(50)
+  motivo           String     @db.VarChar(80)
+  n_periodo        n_periodo  @relation(fields: [per_odo_ajustado], references: [id_peri], onUpdate: NoAction, map: "FK_Ajustes_n_periodo")
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_Ajustes_p_empleado")
+
+  @@ignore
+}
+
+model c_reloj {
+  id_reloj        Int               @id(map: "PK_c_reloj") @default(autoincrement())
+  descripcion     String            @db.VarChar(250)
+  ip_address      String            @db.VarChar(15)
+  estado          Boolean?
+  comedor         Boolean           @default(false, map: "DF_c_reloj_comedor")
+  p_marca_comedor p_marca_comedor[]
+  p_marcaciones   p_marcaciones[]
+}
+
+model con_agc {
+  id_apunte   Int?
+  id_grupo    Int
+  id_cuenta   Int?
+  descripcion String      @db.VarChar(150)
+  id_con_agc  Int         @id(map: "PK_con_agc") @default(autoincrement())
+  con_grupo   con_grupo   @relation(fields: [id_grupo], references: [id_grupo], onDelete: Cascade, onUpdate: NoAction, map: "FK_con_agc_con_grupo")
+  con_apunte  con_apunte? @relation(fields: [id_apunte], references: [id_apunte], onDelete: Cascade, onUpdate: NoAction, map: "FK_con_apunte_grupo_con_apunte")
+
+  @@index([id_apunte], map: "iid_apunte_con_agc")
+  @@index([id_grupo], map: "iid_grupo_con_agc")
+}
+
+model con_apunte {
+  id_apunte                                       Int                     @id(map: "PK_con_apunte") @default(autoincrement())
+  codigo                                          String                  @db.VarChar(5)
+  descripcion                                     String                  @db.VarChar(150)
+  id_categoria                                    Int
+  id_subcategoria                                 Int?
+  apertura_cc                                     Boolean?
+  deudora                                         Boolean?
+  dif_grupo                                       Boolean?
+  apertura_empl                                   Boolean?
+  id_concepto                                     Int?
+  id_cuenta                                       Int?
+  con_agc                                         con_agc[]
+  sys_lista_con_apunte_id_categoriaTosys_lista    sys_lista               @relation("con_apunte_id_categoriaTosys_lista", fields: [id_categoria], references: [id_lista], onUpdate: NoAction, map: "FK_con_apunte_sys_lista")
+  sys_lista_con_apunte_id_subcategoriaTosys_lista sys_lista?              @relation("con_apunte_id_subcategoriaTosys_lista", fields: [id_subcategoria], references: [id_lista], onDelete: NoAction, onUpdate: NoAction, map: "FK_con_apunte_sys_lista2")
+  con_plantilla_detalle                           con_plantilla_detalle[]
+
+  @@index([id_categoria], map: "iid_categoria_con_apunte")
+  @@index([id_subcategoria], map: "iid_subcategoria_con_apunte")
+}
+
+model con_gcc {
+  id_grupo   Int
+  id_ctgt    Int
+  id_con_gcc Int       @id(map: "PK_con_gcc") @default(autoincrement())
+  activo     Boolean?
+  con_grupo  con_grupo @relation(fields: [id_grupo], references: [id_grupo], onDelete: Cascade, onUpdate: NoAction, map: "FK_con_gcc_con_grupo")
+
+  @@index([id_grupo], map: "iid_grupo_con_gcc")
+}
+
+model con_grupo {
+  id_grupo    Int       @id(map: "PK_con_grupo") @default(autoincrement())
+  descripcion String    @db.VarChar(150)
+  codigo      String    @db.VarChar(5)
+  con_agc     con_agc[]
+  con_gcc     con_gcc[]
+}
+
+model con_plantilla_cabecera {
+  id_plantilla_cabecera Int                     @id(map: "PK_con_plantilla_cabecera") @default(autoincrement())
+  codigo                String                  @db.VarChar(5)
+  titulo                String                  @db.VarChar(150)
+  op_nomina             Int
+  moneda                Int?
+  diario                Int
+  sys_lista             sys_lista               @relation(fields: [op_nomina], references: [id_lista], onUpdate: NoAction, map: "FK_con_plantilla_cabecera_sys_lista")
+  con_plantilla_detalle con_plantilla_detalle[]
+
+  @@index([op_nomina], map: "iop_nomina_con_plantilla_cabecera")
+}
+
+model con_plantilla_detalle {
+  id_plantilla_detalle                                           Int                    @id(map: "PK_con_plantilla_detalle") @default(autoincrement())
+  id_plantilla_cabecera                                          Int
+  id_apunte                                                      Int
+  descripcion                                                    String                 @db.VarChar(150)
+  debe                                                           Int?
+  haber                                                          Int?
+  con_apunte                                                     con_apunte             @relation(fields: [id_apunte], references: [id_apunte], onDelete: Cascade, onUpdate: NoAction, map: "FK_con_plantilla_detalle_con_apunte")
+  con_plantilla_cabecera                                         con_plantilla_cabecera @relation(fields: [id_plantilla_cabecera], references: [id_plantilla_cabecera], onDelete: Cascade, onUpdate: NoAction, map: "FK_con_plantilla_detalle_con_plantilla_cabecera")
+  con_tipo_importe_con_plantilla_detalle_debeTocon_tipo_importe  con_tipo_importe?      @relation("con_plantilla_detalle_debeTocon_tipo_importe", fields: [debe], references: [id_tipo_importe], onDelete: NoAction, onUpdate: NoAction, map: "FK_con_plantilla_detalle_con_tipo_importe")
+  con_tipo_importe_con_plantilla_detalle_haberTocon_tipo_importe con_tipo_importe?      @relation("con_plantilla_detalle_haberTocon_tipo_importe", fields: [haber], references: [id_tipo_importe], onDelete: NoAction, onUpdate: NoAction, map: "FK_con_plantilla_detalle_con_tipo_importe1")
+
+  @@index([debe], map: "idebe_con_plantilla_detalle")
+  @@index([haber], map: "ihaber_con_plantilla_detalle")
+  @@index([id_apunte], map: "iid_apunte_con_plantilla_detalle")
+  @@index([id_plantilla_cabecera], map: "iid_plantilla_cabecera_con_plantilla_detalle")
+}
+
+model con_tipo_importe {
+  id_tipo_importe                                                     Int                     @id(map: "PK_con_tipo_importe") @default(autoincrement())
+  id_operacion_nomina                                                 Int
+  id_categoria                                                        Int
+  descripcion                                                         String                  @db.VarChar(150)
+  con_plantilla_detalle_con_plantilla_detalle_debeTocon_tipo_importe  con_plantilla_detalle[] @relation("con_plantilla_detalle_debeTocon_tipo_importe")
+  con_plantilla_detalle_con_plantilla_detalle_haberTocon_tipo_importe con_plantilla_detalle[] @relation("con_plantilla_detalle_haberTocon_tipo_importe")
+  sys_lista_con_tipo_importe_id_operacion_nominaTosys_lista           sys_lista               @relation("con_tipo_importe_id_operacion_nominaTosys_lista", fields: [id_operacion_nomina], references: [id_lista], onUpdate: NoAction, map: "FK_con_tipo_importe_sys_lista")
+  sys_lista_con_tipo_importe_id_categoriaTosys_lista                  sys_lista               @relation("con_tipo_importe_id_categoriaTosys_lista", fields: [id_categoria], references: [id_lista], onUpdate: NoAction, map: "FK_con_tipo_importe_sys_lista1")
+
+  @@index([id_categoria], map: "iid_categoria_con_tipo_importe")
+  @@index([id_operacion_nomina], map: "iid_operacion_nomina_con_tipo_importe")
+}
+
+model con_tmp_empleado {
+  no_interno       String     @id(map: "PK_con_tmp_empleado") @db.VarChar(7)
+  acum_vac         Decimal    @db.Decimal(10, 2)
+  c_seg_social     Decimal    @db.Decimal(10, 2)
+  i_fza_trab       Decimal    @db.Decimal(10, 2)
+  i_seg_cort_plazo Decimal    @db.Decimal(10, 2)
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_con_tmp_empleado_p_empleado")
+}
+
+model con_tmp_generacion {
+  id_tmp_generacion Int      @id(map: "PK_con_tmp_generacion") @default(autoincrement())
+  id_plantilla      Int
+  cuenta            String   @db.VarChar(255)
+  c_costo           Int?
+  descripcion       String   @db.VarChar(150)
+  debe              Decimal? @db.Decimal(10, 2)
+  haber             Decimal? @db.Decimal(10, 2)
+  term_contable     String?  @db.VarChar(50)
+  id_nominilla      Int?
+  moneda            Int?
+  id_cuenta         Int
+  doc               String?  @db.VarChar(50)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model desglose {
+  no_interno    String     @db.VarChar(7)
+  cien          Int        @default(0, map: "DF_desglose_cien")
+  cincuenta     Int        @default(0, map: "DF_desglose_cincuenta")
+  veinte        Int        @default(0, map: "DF_desglose_veinte")
+  diez          Int        @default(0, map: "DF_desglose_diez")
+  cinco         Int        @default(0, map: "DF_desglose_cinco")
+  tres          Int        @default(0, map: "DF_desglose_tres")
+  uno           Int        @default(0, map: "DF_desglose_uno")
+  cincuenta_c   Int        @default(0, map: "DF_desglose_cincuenta_c")
+  veinticinco_c Int        @default(0, map: "DF_desglose_veinticinco_c")
+  veinte_c      Int        @default(0, map: "DF_desglose_veinte_c")
+  diez_c        Int        @default(0, map: "DF_desglose_diez_c")
+  cinco_c       Int        @default(0, map: "DF_desglose_cinco_c")
+  dos_c         Int        @default(0, map: "DF_desglose_dos_c")
+  uno_c         Int        @default(0, map: "DF_desglose_uno_c")
+  cuc           Boolean    @default(false, map: "DF_desglose_cuc")
+  doscientos    Int        @default(0, map: "DF__desglose__doscie__20EA6379")
+  quinientos    Int        @default(0, map: "DF__desglose__quinie__21DE87B2")
+  mil           Int        @default(0, map: "DF__desglose__mil__22D2ABEB")
+  p_empleado    p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_desglose_p_empleado")
+
+  @@ignore
+}
+
+model enlaces_zunpr_ih {
+  id_enlace      Int    @id(map: "PK_enlaces_zunpr_ih") @default(autoincrement())
+  tipo_nomen     Int
+  id_nomen_zunpr Int
+  codigo_ih      String @db.VarChar(50)
+}
+
+model factura {
+  id_factura        Int     @id(map: "PK_factura") @default(autoincrement())
+  nombre            String  @db.VarChar(50)
+  codigo_one        String  @db.VarChar(50)
+  direccion         String  @db.VarChar(200)
+  nit               String  @db.VarChar(50)
+  central_comercial String  @db.VarChar(50)
+  proveedor         Boolean
+  no_cta_cuc        String  @db.VarChar(20)
+  no_cta            String  @db.VarChar(20)
+}
+
+model filtros_reportes_rh {
+  id_filtro   Int    @id(map: "PK_filtros_reportes_rh") @default(autoincrement())
+  descripcion String @db.VarChar(Max)
+  filtro      String @db.VarChar(Max)
+}
+
+model h_ausencias {
+  id_inci       Int           @id(map: "PK_h_ausencias")
+  id_ausencia   Int
+  tiempo        Decimal       @db.Decimal(7, 4)
+  importe       Decimal       @db.Decimal(18, 2)
+  tarifa        Decimal       @db.Decimal(18, 4)
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_ausencias_h_incidencias")
+  n_ausencias   n_ausencias   @relation(fields: [id_ausencia], references: [id_ausencia], onUpdate: NoAction, map: "FK_h_ausencias_n_ausencias")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model h_clave_snc {
+  h_clave_snc Int
+  id_snc      Int
+  clave       String? @db.VarChar(1)
+
+  @@ignore
+}
+
+model h_descuentos {
+  id_inci       Int           @id(map: "PK_h_descuentos")
+  id_desc       Int
+  importe       Decimal?      @db.Decimal(7, 2)
+  porciento     Decimal?      @db.Decimal(3, 1)
+  tipo_aporte   Int
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_descuentos_h_incidencias")
+  n_descuentos  n_descuentos  @relation(fields: [id_desc], references: [id_descuento], onUpdate: NoAction, map: "FK_h_descuentos_n_descuentos")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model h_empleado {
+  no_interno         String       @db.VarChar(7)
+  id_peri            Int
+  ftiempo_horas      Decimal      @db.Decimal(7, 2)
+  h_lab              Decimal      @db.Decimal(7, 4)
+  h_lab_sal_nor      Decimal      @db.Decimal(7, 4)
+  h_lab_sal_prom     Decimal?     @db.Decimal(7, 4)
+  ftiempo_dias       Decimal      @db.Decimal(6, 4)
+  dias_lab           Decimal      @db.Decimal(6, 4)
+  dias_lab_tar_nor   Decimal      @db.Decimal(6, 4)
+  dias_lab_sal_prom  Decimal      @db.Decimal(6, 4)
+  horasxdias         Decimal      @db.Decimal(6, 4)
+  tarifa_horaria     Decimal      @db.Decimal(7, 4)
+  sal_dev            Decimal      @db.Decimal(18, 2)
+  ac_vac             Boolean
+  paga_vac           Boolean
+  regimen_salarial   Int
+  forma_cobro        Int
+  unidad_org         Int
+  centro_costo       Int
+  jornalero_reporte  Boolean
+  id_nominilla       Int?
+  id_sis_pago_result Int
+  grupo_pago         Int
+  tarifa_diaria      Decimal      @db.Decimal(7, 4)
+  pago_tm_mn         Boolean      @default(false, map: "DF_h_empleado_pago_tm_mn")
+  pago_tm_cuc        Boolean      @default(false, map: "DF_h_empleado_pago_tm_cuc")
+  revi_tempus        Boolean      @default(false, map: "DF_h_empleado_revi_tempus")
+  n_grupos_n         n_grupos_n   @relation(fields: [grupo_pago], references: [id_grupo_n], onUpdate: NoAction, map: "FK_h_empleado_n_grupos_n")
+  n_periodo          n_periodo    @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FK_h_empleado_n_periodo")
+  n_unidad_org       n_unidad_org @relation(fields: [unidad_org], references: [id_uorg], onUpdate: NoAction, map: "FK_h_empleado_n_unidad_org")
+  p_empleado         p_empleado   @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_h_empleado_p_empleado")
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model h_estimulacion_mn {
+  centro_costo Int
+  id_periodo   Int
+  coeficiente  Decimal   @default(0, map: "DF_h_estimulacion_mn_coeficiente") @db.Decimal(18, 9)
+  porciento    Decimal   @default(0, map: "DF_h_estimulacion_mn_porciento") @db.Decimal(18, 9)
+  id_monto     Int?
+  n_periodo    n_periodo @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_h_estimulacion_mn_n_periodo")
+
+  @@ignore
+}
+
+model h_garantias {
+  id_inci       Int           @id(map: "PK_h_garantias")
+  id_garantias  Int
+  importe       Decimal       @default(0, map: "DF_h_garantias_importe") @db.Decimal(7, 2)
+  cant_dias     Int           @default(0, map: "DF_h_garantias_cant_dias")
+  debio_cobrar  Decimal       @default(0, map: "DF_h_garantias_debio_cobrar") @db.Decimal(7, 2)
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_garantias_h_incidencias")
+  n_garantias   n_garantias   @relation(fields: [id_garantias], references: [id_garantia], onUpdate: NoAction, map: "FK_h_garantias_n_garantias")
+}
+
+model h_incidencias {
+  id_inci         Int              @id(map: "PK_h_incidencias")
+  no_interno      String           @db.VarChar(7)
+  id_ppago        Int
+  tipo            Int?
+  id_nominilla    Int?
+  id_padre        Int?
+  h_ausencias     h_ausencias?
+  h_descuentos    h_descuentos?
+  h_garantias     h_garantias?
+  n_periodo       n_periodo        @relation(fields: [id_ppago], references: [id_peri], onUpdate: NoAction, map: "FK_h_incidencias_n_periodo")
+  p_empleado      p_empleado       @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_h_incidencias_p_empleado")
+  h_pag_ret_ind   h_pag_ret_ind?
+  h_pagos         h_pagos?
+  h_retenciones   h_retenciones?
+  h_subsidio      h_subsidio?
+  h_subsidio_temp h_subsidio_temp?
+  h_tarifah       h_tarifah?
+  h_vacaciones    h_vacaciones?
+  h_vinculacion   h_vinculacion?
+}
+
+model h_nominilla {
+  id_nominilla    Int
+  tipo_pago       Int
+  cuc             Boolean
+  no_interno      String         @db.VarChar(7)
+  dias_pagados    Int
+  salario_dev     Decimal        @db.Decimal(18, 2)
+  periodo_pago    Int
+  tipo            String         @db.Char(1)
+  descripcion     String         @db.VarChar(150)
+  pago_tm_mn      Boolean?
+  pago_tm_cuc     Boolean?
+  id_unidad_org   Int            @default(-1, map: "DF_h_nominilla_id_unidad_org")
+  id_centro_costo Int            @default(-1, map: "DF_h_nominilla_id_cento_costo")
+  horas_pagadas   Decimal        @default(0, map: "DF_h_nominilla_horas_pagadas") @db.Decimal(18, 4)
+  id_movimiento   Int?
+  n_periodo       n_periodo      @relation(fields: [periodo_pago], references: [id_peri], onUpdate: NoAction, map: "FK_h_nominilla_n_periodo")
+  n_unidad_org    n_unidad_org   @relation(fields: [id_unidad_org], references: [id_uorg], onUpdate: NoAction, map: "FK_h_nominilla_n_unidad_org")
+  p_empleado      p_empleado     @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_h_nominilla_p_empleado")
+  p_movimientos   p_movimientos? @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: NoAction, onUpdate: NoAction, map: "FK_h_nominilla_p_movimientos")
+
+  @@id([id_nominilla, no_interno], map: "PK_h_nominilla")
+}
+
+model h_pag_ret_ind {
+  id_inci       Int           @id(map: "PK_h_pag_ret_ind")
+  id_retencion  Int
+  importe       Float
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_pag_ret_ind_h_incidencias")
+}
+
+model h_pagos {
+  id_inci        Int           @id(map: "PK_h_pagos")
+  id_cpago       Int
+  tiempo         Decimal       @db.Decimal(7, 4)
+  tarifa_diaria  Decimal       @db.Decimal(7, 4)
+  importe        Decimal       @db.Decimal(18, 2)
+  tarifa_horaria Decimal?      @db.Decimal(7, 4)
+  tiempo_horas   Decimal?      @db.Decimal(7, 4)
+  h_incidencias  h_incidencias @relation(fields: [id_inci], references: [id_inci], onUpdate: NoAction, map: "FK_h_pagos_h_incidencias")
+  n_pagos        n_pagos       @relation(fields: [id_cpago], references: [id_pagos], onUpdate: NoAction, map: "FK_h_pagos_n_pagos")
+}
+
+model h_plantilla_cargos {
+  id                Int           @id(map: "PK_h_plantilla_cargos") @default(autoincrement())
+  orden             Int
+  fecha_aprobacion  DateTime      @db.DateTime
+  unidad_org        Int?
+  cargo             Int?
+  propuestas        Int?
+  aprobadas         Int?
+  cubiertas         Int?
+  nivel_preparacion String?       @db.VarChar(5)
+  prioridad         Int?
+  c_ds              Int?
+  c_d               Int?
+  c_e               Int?
+  t                 Int?
+  a                 Int?
+  s                 Int?
+  o                 Int?
+  n_cargos          n_cargos?     @relation(fields: [cargo], references: [id_cargos], onDelete: NoAction, onUpdate: NoAction, map: "FK_h_plantilla_cargos_n_cargos")
+  n_unidad_org      n_unidad_org? @relation(fields: [unidad_org], references: [id_uorg], onDelete: NoAction, onUpdate: NoAction, map: "FK_h_plantilla_cargos_n_unidad_org")
+}
+
+model h_porcientos {
+  id             Int       @id(map: "PK_h_porcientos")
+  seg_social     Decimal   @db.Decimal(5, 2)
+  impuestos      Decimal   @db.Decimal(5, 2)
+  ss_corto_plazo Decimal   @db.Decimal(5, 2)
+  n_periodo      n_periodo @relation(fields: [id], references: [id_peri], onUpdate: NoAction, map: "FK_h_porcientos_n_periodo")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model h_ptos_eval {
+  no_interno       String     @db.VarChar(7)
+  id_periodo       Int
+  evaluacion       Int
+  cobra_mn         Boolean    @default(true, map: "DF_h_ptos_eval_cobra_mn")
+  cobra_cuc        Boolean    @default(true, map: "DF_h_ptos_eval_cobra_cuc")
+  evaluacion_plus  Int        @default(0, map: "DF_h_ptos_eval_evaluacion_plus")
+  coeficiente_est  Decimal    @default(0, map: "DF_h_ptos_eval_coeficiente_est") @db.Decimal(18, 9)
+  coeficiente_plus Decimal    @default(0, map: "DF_h_ptos_eval_coeficiente_plus") @db.Decimal(18, 9)
+  n_periodo        n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_h_ptos_eval_n_periodo")
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_h_ptos_eval_p_empleado")
+
+  @@ignore
+}
+
+model h_reclamo_salario {
+  id_inci               Int         @id(map: "PK_h_reclamo_salario")
+  id_reintegro          Int?
+  importe_sal           Decimal     @db.Decimal(7, 2)
+  importe_sub           Decimal     @db.Decimal(7, 2)
+  importe_vac           Decimal     @db.Decimal(7, 2)
+  importe_gar           Decimal     @db.Decimal(7, 2)
+  importe_cuc           Decimal     @db.Decimal(7, 2)
+  salario_reclamado_mn  Decimal     @db.Decimal(7, 2)
+  salario_reclamado_cuc Decimal     @db.Decimal(7, 2)
+  reintegros            reintegros? @relation(fields: [id_reintegro], references: [id_reinte], onDelete: NoAction, onUpdate: NoAction, map: "FK_h_reclamo_salario_reintegros")
+}
+
+model h_retenciones {
+  id_inci       Int           @id(map: "PK_h_retenciones")
+  id_retencion  Int
+  imp_sueldo    Decimal       @db.Decimal(7, 2)
+  imp_vac       Decimal       @db.Decimal(7, 2)
+  imp_sub       Decimal       @db.Decimal(7, 2)
+  imp_gar       Decimal       @db.Decimal(7, 2)
+  imp_nominilla Decimal       @db.Decimal(7, 2)
+  pendiente     Boolean
+  mensualidad   Decimal       @db.Decimal(7, 2)
+  recargo       Decimal       @db.Decimal(5, 2)
+  no_ret        String        @db.VarChar(30)
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_retenciones_h_incidencias")
+  n_retenciones n_retenciones @relation(fields: [id_retencion], references: [id_rete], onUpdate: NoAction, map: "FK_h_retenciones_n_retenciones")
+}
+
+model h_snc {
+  id_snc     Int        @id(map: "PK_h_snc")
+  importe    Decimal    @db.Decimal(18, 2)
+  dias_trab  Decimal    @db.Decimal(7, 4)
+  id_nper    Int
+  id_empl    String     @db.VarChar(7)
+  tipo       Int        @default(0, map: "DF_h_snc_tipo")
+  n_periodo  n_periodo  @relation(fields: [id_nper], references: [id_peri], onUpdate: NoAction, map: "FK_h_snc_n_periodo")
+  p_empleado p_empleado @relation(fields: [id_empl], references: [no_interno], onDelete: Cascade, map: "FK_h_snc_p_empleado")
+}
+
+model h_submayor_vac {
+  no_interno      String     @db.VarChar(7)
+  id_per          Int
+  saldo_vac_ini_t Decimal    @db.Decimal(7, 4)
+  saldo_vac_ini_i Decimal    @db.Decimal(18, 2)
+  vac_ac_t        Decimal    @db.Decimal(7, 4)
+  vac_ac_i        Decimal    @db.Decimal(18, 2)
+  vac_dis_t       Decimal    @db.Decimal(7, 4)
+  vac_dis_i       Decimal    @db.Decimal(18, 2)
+  vac_ac_nlla_t   Decimal?   @default(0, map: "DF_h_submayor_vac_vac_ac_nlla_t") @db.Decimal(7, 4)
+  vac_ac_nlla_i   Decimal?   @default(0, map: "DF_h_submayor_vac_vac_ac_nlla_i") @db.Decimal(18, 2)
+  vac_dis_nlla_t  Decimal?   @default(0, map: "DF_h_submayor_vac_vac_dis_nlla_t") @db.Decimal(7, 4)
+  vac_dis_nlla_i  Decimal?   @default(0, map: "DF_h_submayor_vac_vac_dis_nlla_i") @db.Decimal(18, 2)
+  ajuste_t        Decimal?   @db.Decimal(7, 4)
+  ajuste_i        Decimal?   @db.Decimal(18, 2)
+  saldo_vac_act_t Decimal    @db.Decimal(7, 4)
+  saldo_vac_act_i Decimal    @db.Decimal(18, 2)
+  n_periodo       n_periodo  @relation(fields: [id_per], references: [id_peri], onUpdate: NoAction, map: "FK_h_submayor_vac_n_periodo")
+  p_empleado      p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_h_submayor_vac_p_empleado")
+
+  @@id([no_interno, id_per], map: "PK_h_submayor_vac")
+}
+
+model h_subsidio {
+  id_inci         Int           @id(map: "PK_h_subsidio")
+  id_sub          Int
+  tarifa_promedio Decimal       @db.Decimal(18, 4)
+  importe_total   Decimal       @db.Decimal(18, 2)
+  importe_periodo Decimal?      @db.Decimal(18, 2)
+  dias_total      Int
+  dias_periodo    Int
+  debio_cobrar    Decimal       @db.Decimal(18, 2)
+  pagado          Boolean?
+  ac_vac_mat      Decimal?      @db.Decimal(18, 4)
+  h_incidencias   h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_subsidio_h_incidencias")
+  n_subsidios     n_subsidios   @relation(fields: [id_sub], references: [id_subsidio], onUpdate: NoAction, map: "FK_h_subsidio_n_subsidios")
+}
+
+model h_subsidio_temp {
+  id_inci           Int           @id(map: "PK_h_subsidio_temp")
+  concepto_subsidio String        @db.VarChar(250)
+  dias_total        Int
+  dias_primero      Int
+  dias_segundo      Int
+  dias_tercero      Int
+  importe_total     Decimal       @db.Decimal(18, 2)
+  promedio          Decimal       @db.Decimal(18, 4)
+  h_incidencias     h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_subsidio_temp_h_subsidio")
+}
+
+model h_tarifah {
+  id_inci       Int           @id(map: "PK_h_tarifah")
+  tarifa        Float
+  cant_horas    Float
+  importe       Float
+  id_cc         Int
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_tarifah_h_incidencias")
+}
+
+model h_vacaciones {
+  id_inci           Int           @id(map: "PK_h_vacaciones")
+  tiempo_total      Decimal       @db.Decimal(7, 4)
+  importe_total     Decimal       @db.Decimal(7, 2)
+  dias_periodo      Decimal       @db.Decimal(7, 4)
+  importe_periodo   Decimal       @db.Decimal(7, 2)
+  pagado            Int
+  codigo            Int           @default(2, map: "DF_h_vacaciones_codigo")
+  dias_sabado       Int           @default(0, map: "DF_h_vacaciones_dias_sabado")
+  vac_sin_disfrutar Boolean       @default(false, map: "DF_h_vacaciones_vac_sin_disfrutar")
+  h_incidencias     h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_vacaciones_h_incidencias")
+}
+
+model h_vinculacion {
+  id_inci       Int           @id(map: "PK_h_vinculacion")
+  tipo          Int
+  numero_orden  String?       @db.NChar(10)
+  cant_horas    Float
+  tarifa        Float
+  porciento     Float?
+  id_cond_anorm Int?
+  cantidad      Float?
+  importe       Float?
+  h_incidencias h_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_h_vinculacion_h_incidencias")
+}
+
+model i_ausencias {
+  id_inci       Int           @id(map: "PK_i_ausencias")
+  id_ausencia   Int
+  tiempo        Decimal       @db.Decimal(7, 4)
+  importe       Decimal       @db.Decimal(18, 2)
+  tarifa        Decimal       @db.Decimal(18, 4)
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_ausencias_i_incidencias")
+  n_ausencias   n_ausencias   @relation(fields: [id_ausencia], references: [id_ausencia], onUpdate: NoAction, map: "FK_i_ausencias_n_ausencias")
+
+  @@index([id_ausencia], map: "iid_ausencia_i_ausencias")
+}
+
+model i_clave_snc {
+  i_clave_snc Int     @id(map: "PK_i_clave_snc") @default(autoincrement())
+  id_snc      Int?
+  clave       String? @db.VarChar(1)
+  i_snc       i_snc?  @relation(fields: [id_snc], references: [id_snc], onDelete: Cascade, onUpdate: NoAction, map: "FK_i_clave_snc_i_snc")
+}
+
+model i_descuentos {
+  id_inci       Int           @id(map: "PK_i_idescuentos")
+  id_desc       Int
+  importe       Decimal?      @default(0, map: "DF_i_descuentos_importe") @db.Decimal(7, 2)
+  porciento     Decimal?      @default(0, map: "DF_i_descuentos_porciento") @db.Decimal(3, 1)
+  tipo_aporte   Int
+  n_descuentos  n_descuentos  @relation(fields: [id_desc], references: [id_descuento], onUpdate: NoAction, map: "FK_i_descuentos_n_descuentos")
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_idescuentos_i_incidencias")
+
+  @@index([id_desc], map: "iid_desc_i_descuentos")
+}
+
+model i_empleado {
+  no_interno         String     @db.VarChar(7)
+  id_peri            Int
+  ftiempo_horas      Decimal    @db.Decimal(7, 2)
+  h_lab              Decimal    @db.Decimal(7, 4)
+  h_lab_sal_nor      Decimal    @db.Decimal(7, 4)
+  h_lab_sal_prom     Decimal?   @db.Decimal(7, 4)
+  ftiempo_dias       Decimal    @db.Decimal(6, 4)
+  dias_lab           Decimal    @db.Decimal(6, 4)
+  dias_lab_tar_nor   Decimal    @db.Decimal(6, 4)
+  dias_lab_sal_prom  Decimal    @db.Decimal(6, 4)
+  horasxdias         Decimal    @db.Decimal(6, 4)
+  tarifa_horaria     Decimal    @db.Decimal(7, 4)
+  sal_dev            Decimal    @db.Decimal(18, 2)
+  ac_vac             Boolean
+  paga_vac           Boolean
+  regimen_salarial   Int
+  forma_cobro        Int
+  unidad_org         Int
+  centro_costo       Int
+  jornalero_reporte  Boolean
+  id_nominilla       Int?
+  id_sis_pago_result Int
+  grupo_pago         Int
+  tarifa_diaria      Decimal    @db.Decimal(7, 4)
+  pago_tm_mn         Boolean    @default(false, map: "DF_i_empleado_pago_tm_mn")
+  pago_tm_cuc        Boolean    @default(false, map: "DF_i_empleado_pago_tm_cuc")
+  revi_tempus        Boolean    @default(false, map: "DF_i_empleado_revi_tempus")
+  n_periodo          n_periodo  @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FK_i_empleado_n_periodo")
+  p_empleado         p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_i_empleado_p_empleado")
+
+  @@id([no_interno, id_peri], map: "PK_i_empleado")
+}
+
+model i_estimulacion_mn {
+  centro_costo        Int
+  id_periodo          Int
+  coeficiente         Decimal              @default(0, map: "DF_i_estimulacion_mn_coeficiente") @db.Decimal(18, 9)
+  porciento           Decimal              @default(0, map: "DF_i_estimulacion_mn_porciento") @db.Decimal(18, 9)
+  id_monto            Int?
+  i_monto_estimulo_mn i_monto_estimulo_mn? @relation(fields: [id_monto], references: [id_monto], onDelete: Cascade, map: "FK_i_estimulacion_mn_i_monto_estimulo_mn")
+  n_periodo           n_periodo            @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_i_estimulacion_mn_n_periodo")
+
+  @@id([centro_costo, id_periodo], map: "PK_i_estimulacion_mn")
+}
+
+model i_garantias {
+  id_inci       Int           @id(map: "PK_i_garantias")
+  id_garantias  Int
+  importe       Decimal       @default(0, map: "DF_i_garantias_importe") @db.Decimal(7, 2)
+  cant_dias     Int           @default(0, map: "DF_i_garantias_cant_dias")
+  debio_cobrar  Decimal       @default(0, map: "DF_i_garantias_debio_cobrar") @db.Decimal(7, 2)
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_garantias_i_incidencias")
+  n_garantias   n_garantias   @relation(fields: [id_garantias], references: [id_garantia], onUpdate: NoAction, map: "FK_i_garantias_n_garantias")
+}
+
+model i_horas_mes_jornaleros {
+  id                           Int                     @id(map: "PK_i_horas_mes_jornaleros") @default(autoincrement())
+  no_interno                   String                  @db.VarChar(7)
+  id_periodo                   Int
+  horas_mes_jornaleros         Decimal                 @db.Decimal(9, 4)
+  i_horas_mes_jornaleros       i_horas_mes_jornaleros  @relation("i_horas_mes_jornalerosToi_horas_mes_jornaleros", fields: [id], references: [id], onUpdate: NoAction, map: "FK_i_horas_mes_jornaleros_i_horas_mes_jornaleros")
+  other_i_horas_mes_jornaleros i_horas_mes_jornaleros? @relation("i_horas_mes_jornalerosToi_horas_mes_jornaleros")
+  n_periodo                    n_periodo               @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_i_horas_mes_jornaleros_n_periodo")
+  p_empleado                   p_empleado              @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_i_horas_mes_jornaleros_p_empleado")
+}
+
+model i_incidencias {
+  id_inci           Int                @id(map: "PK_i_incidencias") @default(autoincrement())
+  no_interno        String             @db.VarChar(7)
+  id_ppago          Int
+  tipo              Int
+  id_nominilla      Int?
+  id_padre          Int?
+  i_ausencias       i_ausencias?
+  i_descuentos      i_descuentos?
+  i_garantias       i_garantias?
+  n_periodo         n_periodo          @relation(fields: [id_ppago], references: [id_peri], onUpdate: NoAction, map: "FK_i_incidencias_n_periodo")
+  i_pag_ret_ind     i_pag_ret_ind?
+  i_pagos           i_pagos?
+  i_reclamo_salario i_reclamo_salario?
+  i_retenciones     i_retenciones?
+  i_subsidio        i_subsidio?
+  i_subsidio_temp   i_subsidio_temp?
+  i_tarifah         i_tarifah?
+  i_vacaciones      i_vacaciones?
+  i_vinculacion     i_vinculacion?
+}
+
+model i_monto_estimulo_mn {
+  id_monto          Int                 @id(map: "PK_i_monto_estimulo_mn") @default(autoincrement())
+  monto             Decimal             @db.Decimal(9, 2)
+  i_estimulacion_mn i_estimulacion_mn[]
+}
+
+model i_nominilla {
+  id_nominilla    Int
+  tipo_pago       Int
+  cuc             Boolean
+  no_interno      String         @db.VarChar(7)
+  dias_pagados    Int
+  salario_dev     Decimal        @db.Decimal(18, 2)
+  periodo_pago    Int
+  tipo            String         @db.Char(1)
+  descripcion     String         @db.VarChar(150)
+  pago_tm_mn      Boolean        @default(false, map: "DF_i_nominilla_pago_tm_mn")
+  pago_tm_cuc     Boolean        @default(false, map: "DF_i_nominilla_pago_tm_cuc")
+  id_unidad_org   Int            @default(-1, map: "DF_i_nominilla_id_unidad_org")
+  id_centro_costo Int            @default(-1, map: "DF_i_nominilla_id_cento_costo")
+  horas_pagadas   Decimal        @default(0, map: "DF_i_nominilla_horas_pagadas") @db.Decimal(18, 4)
+  id_movimiento   Int?
+  p_empleado      p_empleado     @relation(fields: [no_interno], references: [no_interno], onUpdate: NoAction, map: "FK_i_nominilla_p_empleado")
+  p_movimientos   p_movimientos? @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: Cascade, map: "FK_i_nominilla_p_movimientos")
+
+  @@id([id_nominilla, no_interno], map: "PK_i_nominilla")
+}
+
+model i_pag_ret_ind {
+  id_inci       Int           @id(map: "PK_i_pag_ret_ind")
+  id_retencion  Int
+  importe       Float
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_pag_ret_ind_i_incidencias")
+}
+
+model i_pagos {
+  id_inci        Int           @id(map: "PK_i_pagos")
+  id_cpago       Int
+  tiempo         Decimal       @db.Decimal(7, 4)
+  tarifa_diaria  Decimal       @db.Decimal(7, 4)
+  importe        Decimal       @db.Decimal(18, 2)
+  tarifa_horaria Decimal?      @db.Decimal(7, 4)
+  tiempo_horas   Decimal?      @db.Decimal(7, 4)
+  i_incidencias  i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_pagos_i_incidencias")
+  n_pagos        n_pagos       @relation(fields: [id_cpago], references: [id_pagos], onUpdate: NoAction, map: "FK_i_pagos_n_pagos")
+
+  @@index([id_cpago], map: "iid_cpago_i_pagos")
+}
+
+model i_ptos_eval {
+  no_interno       String     @db.VarChar(7)
+  id_periodo       Int
+  evaluacion       Int
+  cobra_mn         Boolean    @default(true, map: "DF_i_ptos_eval_cobra_mn")
+  cobra_cuc        Boolean    @default(true, map: "DF_i_ptos_eval_cobra_cuc")
+  evaluacion_plus  Int        @default(0, map: "DF_i_ptos_eval_evaluacion_plus")
+  coeficiente_est  Decimal    @default(0, map: "DF_i_ptos_eval_coeficiente_est") @db.Decimal(18, 9)
+  coeficiente_plus Decimal    @default(0, map: "DF_i_ptos_eval_coeficiente_plus") @db.Decimal(18, 9)
+  n_periodo        n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_i_ptos_eval_n_periodo")
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_i_ptos_eval_p_empleado")
+
+  @@id([no_interno, id_periodo], map: "PK_i_ptos_eval")
+}
+
+model i_reclamo_salario {
+  id_inci               Int           @id(map: "PK_i_reclamo_salario")
+  id_reintegro          Int?
+  importe_sal           Decimal       @db.Decimal(7, 2)
+  importe_sub           Decimal       @db.Decimal(7, 2)
+  importe_vac           Decimal       @db.Decimal(7, 2)
+  importe_gar           Decimal       @db.Decimal(7, 2)
+  importe_cuc           Decimal       @db.Decimal(7, 2)
+  salario_reclamado_mn  Decimal       @db.Decimal(7, 2)
+  salario_reclamado_cuc Decimal       @db.Decimal(7, 2)
+  i_incidencias         i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_reclamo_salario_i_incidencias")
+}
+
+model i_retenciones {
+  id_inci       Int           @id(map: "PK_i_retenciones")
+  id_retencion  Int
+  imp_sueldo    Decimal       @db.Decimal(7, 2)
+  imp_vac       Decimal       @db.Decimal(7, 2)
+  imp_sub       Decimal       @db.Decimal(7, 2)
+  imp_gar       Decimal       @db.Decimal(7, 2)
+  imp_nominilla Decimal       @db.Decimal(7, 2)
+  pendiente     Boolean
+  mensualidad   Decimal       @db.Decimal(7, 2)
+  recargo       Decimal       @db.Decimal(5, 2)
+  no_ret        String        @db.VarChar(30)
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_retenciones_i_incidencias")
+  n_retenciones n_retenciones @relation(fields: [id_retencion], references: [id_rete], onUpdate: NoAction, map: "FK_i_retenciones_n_retenciones")
+
+  @@index([id_retencion], map: "iid_retencion_i_retenciones")
+}
+
+model i_salario_promedio {
+  no_interno           String     @id(map: "PK_i_salario_promedio") @db.VarChar(7)
+  promedio_diario_sub  Decimal    @default(0, map: "DF_i_salario_promedio_promedio_diario_sub") @db.Decimal(10, 4)
+  promedio_sub         Decimal    @default(0, map: "DF_i_salario_promedio_promedio_sub") @db.Decimal(10, 4)
+  promedio_mat         Decimal    @default(0, map: "DF_i_salario_promedio_promedio_mat") @db.Decimal(10, 4)
+  p_prest_soc_mat_dias Decimal    @default(0, map: "DF_i_salario_promedio_p_prest_soc_mat_dias") @db.Decimal(10, 4)
+  promedio_interr      Decimal    @default(0, map: "DF_i_salario_promedio_promedio_interr") @db.Decimal(10, 4)
+  promedio_fijo        Decimal    @default(0, map: "DF_i_salario_promedio_promedio_fijo") @db.Decimal(10, 4)
+  fecha_prom_fijo      DateTime?  @db.DateTime
+  sal_promedio         Decimal    @default(0, map: "DF_i_salario_promedio_sal_promedio") @db.Decimal(10, 4)
+  fecha_sal_prom       DateTime?  @db.DateTime
+  pf_calc_usuario      Boolean    @default(false, map: "DF_i_salario_promedio_pf_calc_usuario")
+  sp_calc_usuario      Boolean    @default(false, map: "DF_i_salario_promedio_sp_calc_usuario")
+  ps_calc_usuario      Boolean    @default(false, map: "DF_i_salario_promedio_ps_calc_usuario")
+  base_calculo         Decimal    @default(0, map: "DF_i_salario_promedio_base_calculo") @db.Decimal(10, 4)
+  pm_calc_usuario      Boolean    @default(false, map: "DF_i_salario_promedio_pm_calc_usuario")
+  p_prest_soc_mat_mes  Decimal    @default(0, map: "DF_i_salario_promedio_p_prest_soc_mat_mes") @db.Decimal(10, 4)
+  ppm_calc_usuario     Boolean    @default(false, map: "DF_i_salario_promedio_ppm_calc_usuario")
+  ppd_calc_usuario     Boolean    @default(false, map: "DF_i_salario_promedio_ppd_calc_usuario")
+  pi_calc_usuario      Boolean    @default(false, map: "DF_i_salario_promedio_pi_calc_usuario")
+  p_empleado           p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_i_salario_promedio_p_empleado")
+}
+
+model i_snc {
+  id_snc      Int           @id(map: "PK_i_snc") @default(autoincrement())
+  importe     Decimal       @db.Decimal(18, 2)
+  dias_trab   Decimal       @db.Decimal(7, 4)
+  id_nper     Int
+  id_empl     String        @db.VarChar(7)
+  tipo        Int           @default(0, map: "DF_i_snc_tipo")
+  i_clave_snc i_clave_snc[]
+  n_periodo   n_periodo     @relation(fields: [id_nper], references: [id_peri], onUpdate: NoAction, map: "FK_i_snc_n_periodo")
+}
+
+model i_submayor_vac {
+  no_interno      String    @id(map: "PK_i_submayor_vac") @db.VarChar(50)
+  id_per          Int
+  saldo_vac_ini_t Decimal   @db.Decimal(7, 4)
+  saldo_vac_ini_i Decimal   @db.Decimal(18, 2)
+  vac_ac_t        Decimal   @db.Decimal(7, 4)
+  vac_ac_i        Decimal   @db.Decimal(18, 2)
+  vac_dis_t       Decimal   @db.Decimal(7, 4)
+  vac_dis_i       Decimal   @db.Decimal(18, 2)
+  vac_ac_nlla_t   Decimal?  @default(0, map: "DF_i_submayor_vac_vac_ac_nlla_t") @db.Decimal(7, 4)
+  vac_ac_nlla_i   Decimal?  @default(0, map: "DF_i_submayor_vac_vac_ac_nlla_i") @db.Decimal(18, 2)
+  vac_dis_nlla_t  Decimal?  @default(0, map: "DF_i_submayor_vac_vac_dis_nlla_t") @db.Decimal(7, 4)
+  vac_dis_nlla_i  Decimal?  @default(0, map: "DF_i_submayor_vac_vac_dis_nlla_i") @db.Decimal(18, 2)
+  ajuste_t        Decimal   @default(0, map: "DF_i_submayor_vac_ajuste_t") @db.Decimal(7, 4)
+  ajuste_i        Decimal?  @default(0, map: "DF_i_submayor_vac_ajuste_i") @db.Decimal(18, 2)
+  saldo_vac_act_t Decimal   @db.Decimal(7, 4)
+  saldo_vac_act_i Decimal   @db.Decimal(18, 2)
+  n_periodo       n_periodo @relation(fields: [id_per], references: [id_peri], onUpdate: NoAction, map: "FK_i_submayor_vac_n_periodo")
+}
+
+model i_subsidio {
+  id_inci         Int           @id(map: "PK_i_subsidio")
+  id_sub          Int
+  tarifa_promedio Decimal       @db.Decimal(18, 4)
+  importe_total   Decimal       @db.Decimal(18, 2)
+  importe_periodo Decimal?      @default(0, map: "DF_i_subsidio_importe_periodo") @db.Decimal(18, 2)
+  dias_total      Int
+  dias_periodo    Int
+  debio_cobrar    Decimal       @db.Decimal(18, 2)
+  pagado          Boolean?
+  ac_vac_mat      Decimal?      @default(0, map: "DF_i_subsidio_ac_vac_mat") @db.Decimal(18, 4)
+  i_incidencias   i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_subsidio_i_incidencias")
+  n_subsidios     n_subsidios   @relation(fields: [id_sub], references: [id_subsidio], onUpdate: NoAction, map: "FK_i_subsidio_n_subsidios")
+
+  @@index([id_sub], map: "iid_sub_i_subsidio")
+}
+
+model i_subsidio_temp {
+  id_inci           Int           @id(map: "PK_i_subsidio_temp")
+  concepto_subsidio String        @db.VarChar(250)
+  dias_total        Int
+  dias_primero      Int
+  dias_segundo      Int
+  dias_tercero      Int
+  importe_total     Decimal       @db.Decimal(18, 2)
+  promedio          Decimal       @db.Decimal(18, 4)
+  i_incidencias     i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_subsidio_temp_i_incidencias")
+}
+
+model i_tarifah {
+  id_inci       Int           @id(map: "PK_i_tarifah")
+  tarifa        Float
+  cant_horas    Float
+  importe       Float
+  id_cc         Int
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_tarifah_i_incidencias")
+}
+
+model i_vacaciones {
+  id_inci           Int           @id(map: "PK_i_vacaciones")
+  tiempo_total      Decimal       @db.Decimal(7, 4)
+  importe_total     Decimal       @db.Decimal(7, 2)
+  dias_periodo      Decimal       @db.Decimal(7, 4)
+  importe_periodo   Decimal       @db.Decimal(7, 2)
+  pagado            Boolean
+  codigo            Int
+  dias_sabado       Int           @default(0, map: "DF_i_vacaciones_dias_sabado")
+  vac_sin_disfrutar Boolean       @default(false, map: "DF_i_vacaciones_vac_sin_disfrutar")
+  i_incidencias     i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_vacaciones_i_incidencias")
+}
+
+model i_vinculacion {
+  id_inci       Int           @id(map: "PK_i_vinculacion")
+  tipo          Int
+  numero_orden  String?       @db.NChar(10)
+  cant_horas    Float
+  tarifa        Float
+  porciento     Float?
+  id_cond_anorm Int?
+  cantidad      Float?
+  importe       Float?
+  i_incidencias i_incidencias @relation(fields: [id_inci], references: [id_inci], onDelete: Cascade, map: "FK_i_vinculacion_i_incidencias")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model IHidentification {
+  id_modulo   Int
+  descripcion String @db.VarChar(50)
+
+  @@ignore
+}
+
+model indice_nomina {
+  id_peri      Int
+  id_grupo     Int
+  tipo         Int
+  id_nominilla Int
+  numero       Int
+  n_grupos_n   n_grupos_n @relation(fields: [id_grupo], references: [id_grupo_n], onUpdate: NoAction, map: "FK_indice_nomina_n_grupos_n")
+  n_periodo    n_periodo  @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FK_indice_nomina_n_periodo")
+
+  @@id([id_peri, id_grupo, tipo, id_nominilla], map: "PK_indice_nomina")
+}
+
+model n_aportes {
+  idrangos  Int     @id(map: "PK_n_aportes") @default(autoincrement())
+  idaporte  Int
+  desde     Decimal @db.Decimal(18, 2)
+  hasta     Decimal @db.Decimal(18, 2)
+  porciento Decimal @db.Decimal(18, 2)
+}
+
+model n_ausencias {
+  id_ausencia               Int                         @id(map: "PK_n_ausencias") @default(autoincrement())
+  cod_ausencia              String                      @unique(map: "IX_n_ausencias") @db.VarChar(50)
+  descripcion               String                      @db.VarChar(250)
+  clasificacion             Int
+  unidad_medida             String                      @db.VarChar(50)
+  a_devengado               Boolean
+  a_pagar_por_salario       Boolean
+  se_paga_salario_fijo      Boolean
+  se_paga_salario_promedio  Boolean
+  porciento_pagar           Float                       @default(0, map: "DF_n_ausencias_porciento_pagar")
+  ac_dias_vac               Boolean
+  ac_imp_vac                Boolean
+  ac_dias_snc               Boolean
+  ac_imp_snc                Boolean
+  clave_snc                 String?                     @db.Char(2)
+  asociada                  Boolean
+  activo                    Boolean                     @default(true, map: "DF_n_ausencias_activo")
+  afecta_est_mn             Boolean                     @default(false, map: "DF_n_ausencias_afecta_est_mn")
+  afecta_est_cuc            Boolean                     @default(false, map: "DF_n_ausencias_afecta_est_cuc")
+  se_paga_salario_escala    Boolean                     @default(false, map: "DF_n_ausencias_se_paga_salario_escala")
+  acum_aporte               Boolean                     @default(false, map: "DF_n_ausencias_acum_aporte")
+  afecta_20CUC              Boolean                     @default(false, map: "DF__n_ausenci__afect__6992D6B6")
+  h_ausencias               h_ausencias[]
+  i_ausencias               i_ausencias[]
+  sys_lista                 sys_lista                   @relation(fields: [clasificacion], references: [id_lista], onUpdate: NoAction, map: "FK_n_ausencias_clasificacion")
+  p_incidencias             p_incidencias[]
+  p_incidencias_modificadas p_incidencias_modificadas[]
+  p_tarjeta_asistencia      p_tarjeta_asistencia[]
+  p_temp_incidencia         p_temp_incidencia[]
+  ph_incidencias            ph_incidencias[]
+
+  @@index([clasificacion], map: "iclasificacion_n_ausencias")
+}
+
+model n_brigadas {
+  id_brigada        Int                 @id(map: "PK_n_brigadas") @default(autoincrement())
+  codigo            String              @db.VarChar(50)
+  descripcion       String              @db.VarChar(50)
+  activo            Boolean
+  fid_turno         Int
+  n_turnos          n_turnos            @relation(fields: [fid_turno], references: [id_turno], onUpdate: NoAction, map: "FK_n_brigadas_n_turnos")
+  p_brigada         p_brigada[]
+  p_temp_incidencia p_temp_incidencia[]
+
+  @@index([fid_turno], map: "ifid_turno_n_brigadas")
+}
+
+model n_calificacion {
+  id_calificacion   Int          @id(map: "PK__n_calificacion__0B91BA14") @default(autoincrement())
+  codigo            String       @db.VarChar(50)
+  descripcion       String       @db.VarChar(50)
+  nivel_escolaridad String       @db.VarChar(50)
+  cod_calificacion  String?      @db.NVarChar(50)
+  p_empleado        p_empleado[]
+}
+
+model n_cargos {
+  id_cargos          Int                  @id(map: "PK_n_cargos") @default(autoincrement())
+  cod_cargo          String               @unique(map: "IX_n_cargos") @db.VarChar(5)
+  descripcion        String               @db.VarChar(150)
+  activo             Boolean
+  fk_cod_grupo_sal   Int
+  fk_cat_ocupacion   Int
+  porciento          Decimal              @default(0, map: "DF_n_cargos_porciento") @db.Decimal(5, 2)
+  h_plantilla_cargos h_plantilla_cargos[]
+  n_cat_ocupacion    n_cat_ocupacion      @relation(fields: [fk_cat_ocupacion], references: [id_categ], onUpdate: NoAction, map: "FK_n_cargos_n_cat_ocupacion")
+  n_grupo_escala     n_grupo_escala       @relation(fields: [fk_cod_grupo_sal], references: [id_grupo_sal], onUpdate: NoAction, map: "FK_n_cargos_n_grupo_escala")
+  p_empleado         p_empleado[]
+  p_mov_detalle      p_mov_detalle[]
+  plan_p2            plan_p2[]
+
+  @@index([fk_cat_ocupacion], map: "iid_categ_n_cargos")
+  @@index([fk_cod_grupo_sal], map: "iid_grupo_sal_n_cargos")
+}
+
+model n_cat_antiguedad {
+  id_cat_antiguedad   Int                   @id(map: "PK__n_cat_antiguedad__18EBB532") @default(autoincrement())
+  codigo              String                @db.VarChar(50)
+  descripcion         String                @db.VarChar(255)
+  p_escala_antiguedad p_escala_antiguedad[]
+}
+
+model n_cat_ocupacion {
+  id_categ          Int                 @id(map: "PK_n_cat_ocupacion") @default(autoincrement())
+  cod_categ         String              @unique(map: "IX_n_cat_ocupacion") @db.Char(20)
+  descripcion       String              @db.VarChar(50)
+  activo            Boolean
+  n_cargos          n_cargos[]
+  p_empleado        p_empleado[]
+  p_mov_detalle     p_mov_detalle[]
+  p_tiempo_a_prueba p_tiempo_a_prueba[]
+}
+
+model n_cesp {
+  id_conceptos                Int     @id(map: "PK_n_cesp") @default(autoincrement())
+  id_kpag_sal_escala          Int     @default(0, map: "DF_n_cesp_id_kpag_sal_escala")
+  id_kpag_idoneidad           Int     @default(0, map: "DF_n_cesp_id_kpag_idoneidad")
+  id_kpag_retr_comp           Int     @default(0, map: "DF_n_cesp_id_kpag_retr_comp")
+  id_kpor_retr_comp           Int     @default(0, map: "DF_n_cesp_id_kpor_retr_comp")
+  id_kpag_perfecc             Int     @default(0, map: "DF_n_cesp_id_kpag_perfecc")
+  id_kpag_result              Int     @default(0, map: "DF_n_cesp_id_kpag_result")
+  id_kpag_horas_ext           Int     @default(0, map: "DF_n_cesp_id_kpag_horas_ext")
+  id_kpag_dia_fer             Int     @default(0, map: "DF_n_cesp_id_kpag_dia_fer")
+  id_kpag_estim_CUC           Int     @default(0, map: "DF_n_cesp_id_kpag_estim_CUC")
+  id_kpag_comedor             Int     @default(0, map: "DF_n_cesp_id_kpag_comedor")
+  id_kpag_vacaciones          Int     @default(0, map: "DF_n_cesp_id_kpag_vacaciones")
+  id_kdes_aporte              Int     @default(0, map: "DF_n_cesp_id_kdes_aporte")
+  id_kdes_idoneidad           Int     @default(0, map: "DF_n_cesp_id_kdes_idoneidad")
+  id_kdes_comedor_CUC         Int     @default(0, map: "DF_n_cesp_id_kdes_comedor_CUC")
+  id_kdes_estimulo_CUC        Int     @default(0, map: "DF_n_cesp_id_kdes_estimulo_CUC")
+  id_kaus_vacaciones          Int     @default(0, map: "DF_n_cesp_id_kaus_vacaciones")
+  id_kaus_diaf                Int     @default(0, map: "DF_n_cesp_id_kaus_diaf")
+  id_kpag_noct                Int     @default(0, map: "DF_n_cesp_id_kpag_noct")
+  id_kdes_trans_obrero        Int     @default(0, map: "DF_n_cesp_id_kdes_trans_obrero")
+  id_kdes_comedor_MN          Int     @default(0, map: "DF_n_cesp_id_kdes_comedor_mn")
+  id_kpag_eficiencia          Int     @default(0, map: "DF_n_cesp_id_kpag_eficiencia")
+  id_kaus_vac_pagadas         Int     @default(0, map: "DF_n_cesp_id_kaus_vac_pagadas")
+  id_kaus_enf_mas3dias        String? @db.VarChar(50)
+  id_kaus_mov_agricolas       String? @db.VarChar(50)
+  id_kaus_mov_militares       String? @db.VarChar(50)
+  id_kaus_lic_autorizadas     String? @db.VarChar(50)
+  id_kaus_lic_deportivas      String? @db.VarChar(50)
+  id_kaus_citac_jud_milit     String? @db.VarChar(50)
+  id_kaus_microbrigadas       String? @db.VarChar(50)
+  id_kaus_pretac_servicio     String? @db.VarChar(50)
+  id_kaus_donacion_sang       String? @db.VarChar(50)
+  id_kaus_org_revoluc         String? @db.VarChar(50)
+  id_kaus_mision_inter        String? @db.VarChar(50)
+  id_kaus_otra_aut_ley        String? @db.VarChar(50)
+  id_kaus_fallecimiento       String? @db.VarChar(50)
+  id_kaus_justificadas        String? @db.VarChar(50)
+  id_kdes_penalizacion        Int     @default(0, map: "DF_n_cesp_id_kdes_penalizacion")
+  id_kpag_tarifa_aprobada     Int     @default(0, map: "DF_n_cesp_id_kpag_tarifa_aprobada")
+  id_kpag_maestria            Int     @default(0, map: "DF_n_cesp_id_kpag_maestria")
+  id_kpag_doctorado           Int     @default(0, map: "DF_n_cesp_id_kpag_doctorado")
+  id_kpag_grupo_electrog      Int     @default(0, map: "DF_n_cesp_id_kpag_grupo_electog")
+  id_kpag_estim_auditor       Int     @default(0, map: "DF_n_cesp_id_kpag_estim_auditor")
+  id_krete_iniforme           Int     @default(0, map: "DF_n_cesp_id_krete_iniforme")
+  id_ccont_aporte_presupuesto Int     @default(0, map: "DF_n_cesp_id_ccont_aporte_presupuesto")
+  id_kaus_enf_menos3dias      String? @db.VarChar(50)
+  id_krete_impuestos          Int     @default(0, map: "DF_n_cesp_id_krete_impuestos")
+  id_kaus_enf_menos3dias1     String? @db.NVarChar(50)
+  id_kpag_jornaleros          Int     @default(0, map: "DF_n_cesp_id_kpag_jornaleros")
+  id_kpag_result_sobre_cumpl  Int     @default(0, map: "DF_n_cesp_id_kpag_result_sobre_cumpl")
+  id_ktur_franco              Int     @default(0, map: "DF_n_cesp_id_ktur_franco")
+  id_kaus_rpt_APAR            String? @db.VarChar(Max)
+  id_kpag_10_CUC              Int     @default(0, map: "DF_n_cesp_id_kpag_10_CUC")
+  id_kpag_20CUC               Int     @default(0, map: "DF__n_cesp__id_kpag___689EB27D")
+  id_kdes_prestamo            Int     @default(0, map: "DF__n_cesp__id_kdes___72E5068B")
+}
+
+model n_contrato {
+  id_tipo_contrato  Int                 @id(map: "PK_n_tipo_contrato") @default(autoincrement())
+  descripcion       String              @db.VarChar(50)
+  codigo            String              @db.VarChar(50)
+  anexo             Boolean
+  acumula_vac       Boolean
+  url_proforma_pago String?             @db.VarChar(255)
+  n_tipo_plaza      n_tipo_plaza[]
+  p_contrato        p_contrato[]
+  p_tiempo_a_prueba p_tiempo_a_prueba[]
+}
+
+model n_descuentos {
+  id_descuento             Int            @id(map: "PK_n_descuentos") @default(autoincrement())
+  codigo                   String         @unique(map: "IX_n_descuentos") @db.VarChar(50)
+  descripcion              String         @db.VarChar(250)
+  descuento_cuc            Boolean
+  por_import               Boolean
+  por_porciento            Boolean
+  automatico               Boolean
+  report_incidencias       Boolean
+  a_salario_devengado      Boolean
+  a_vacaciones_importe     Boolean
+  a_snc_import             Boolean
+  a_salario_promedio       Boolean
+  a_salario_fijo           Boolean
+  a_subsidios              Boolean
+  a_maternidad             Boolean
+  acumula_pago_resultado   Boolean
+  id_formula               Int
+  descuentos_no_realizados Boolean
+  clave_snc                String?        @db.Char(1)
+  activo                   Boolean
+  h_descuentos             h_descuentos[]
+  i_descuentos             i_descuentos[]
+  p_descuentos             p_descuentos[]
+}
+
+model n_empresas {
+  id_empresa Int          @id(map: "PK_n_empresas") @default(autoincrement())
+  nombre     String       @db.VarChar(Max)
+  activo     Boolean
+  p_terceros p_terceros[]
+}
+
+model n_escolaridad {
+  id_escolaridad Int          @id(map: "PK__n_escolaridad__09A971A2") @default(autoincrement())
+  codigo         String       @db.VarChar(50)
+  descripcion    String       @db.VarChar(50)
+  id_nivel       Int
+  sys_lista      sys_lista    @relation(fields: [id_nivel], references: [id_lista], onUpdate: NoAction, map: "FK_n_escolaridad_id_nivel")
+  p_empleado     p_empleado[]
+
+  @@index([id_nivel], map: "iid_nivel_n_escolaridad")
+}
+
+model n_eventos_comedor {
+  id_evento   Int     @id(map: "PK_n_eventos_comedor") @default(autoincrement())
+  nombre      String  @db.VarChar(250)
+  hora_inicio String  @db.VarChar(50)
+  hora_fin    String  @db.VarChar(50)
+  tarifa      Decimal @default(0, map: "DF_n_eventos_comedor_tarifa") @db.Decimal(18, 2)
+}
+
+model n_garantias {
+  id_garantia             Int           @id(map: "PK_n_garantias") @default(autoincrement())
+  codigo                  String?       @unique(map: "IX_n_garantias") @db.NChar(10)
+  descripcion             String?       @db.NVarChar(250)
+  id_clasificacion        Int?
+  salario_fijo            Boolean?
+  salario_promedio        Boolean?
+  porciento_pagar         Float?
+  id_ausencia_asociada    Int?
+  id_a_promedio_sub       Int?
+  id_a_promedio_mat       Int?
+  id_a_promedio_inte      Int?
+  a_vacaciones_dias       Boolean?
+  a_vacaciones_importe    Boolean?
+  a_snc_dias              Boolean?
+  id_a_snc_dias           Int?
+  aporta_seguridad_social Boolean?
+  clave_snc               String?       @db.NChar(10)
+  activo                  Boolean?
+  salario_escala          Boolean       @default(false, map: "DF_n_garantias_salario_escala")
+  pago_idoneid            Boolean       @default(false, map: "DF_n_garantias_pago_idoneid")
+  acumula_ss              Boolean       @default(false, map: "DF_n_garantias_acumula_ss")
+  h_garantias             h_garantias[]
+  i_garantias             i_garantias[]
+}
+
+model n_grupo_escala {
+  id_grupo_sal     Int             @id(map: "PK_n_grupo_escala") @default(autoincrement())
+  cod_grupo_sal    Int
+  iden_grupo_sal   String          @db.Char(8)
+  salario          Decimal?        @db.Decimal(7, 2)
+  porciento_aporte Decimal?        @db.Decimal(3, 1)
+  activo           Boolean
+  n_cargos         n_cargos[]
+  p_empleado       p_empleado[]
+  p_mov_detalle    p_mov_detalle[]
+}
+
+model n_grupos_n {
+  id_grupo_n    Int             @id(map: "PK_n_grupos_n") @default(autoincrement())
+  descripcion   String          @db.VarChar(250)
+  activo        Boolean
+  codigo        String?         @db.VarChar(50)
+  h_empleado    h_empleado[]    @ignore
+  indice_nomina indice_nomina[]
+  p_pagos       p_pagos[]
+}
+
+model n_horarios {
+  id_horario      Int               @id(map: "PK_n_horarios") @default(autoincrement())
+  codigo          String            @db.VarChar(50)
+  descripcion     String            @db.VarChar(250)
+  n_secuencias    n_secuencias[]
+  p_empleado      p_empleado[]
+  p_horario_libre p_horario_libre[]
+}
+
+model n_idioma {
+  id_idioma   Int        @id(map: "PK_n_idioma") @default(autoincrement())
+  codigo      String     @db.VarChar(50)
+  descripcion String     @db.VarChar(50)
+  p_idioma    p_idioma[]
+}
+
+model n_jornada {
+  id_jornada       Int             @id(map: "PK_n_jornada") @default(autoincrement())
+  codigo           String          @unique(map: "IX_n_jornada") @db.Char(1)
+  descripcion      String?         @db.VarChar(150)
+  cant_horas_dias  Decimal?        @db.Decimal(6, 4)
+  cant_dias_mes    Decimal?        @db.Decimal(4, 2)
+  cant_horas_mes   Decimal?        @db.Decimal(5, 2)
+  activo           Boolean
+  tarifa_estip_com Decimal         @default(0, map: "DF_n_jornada_tarifa_estip_com") @db.Decimal(6, 2)
+  p_mov_detalle    p_mov_detalle[]
+  p_pagos          p_pagos[]
+}
+
+model n_licencia {
+  id_licencia Int          @id(map: "PK__n_licencia__634EBE90") @default(autoincrement())
+  codigo      String       @db.VarChar(50)
+  descripcion String       @db.VarChar(255)
+  p_licencia  p_licencia[]
+}
+
+model n_motivo_alta_baja {
+  id_motivo_alta_baja Int             @id(map: "PK_n_motivo_alta_baja") @default(autoincrement())
+  descripcion         String          @db.VarChar(Max)
+  codigo              String          @db.VarChar(50)
+  motivo              Boolean
+  clasificacion       Int?
+  tipo                Int             @default(1, map: "DF_n_motivo_alta_baja_tipo")
+  p_movimientos       p_movimientos[]
+}
+
+model n_municipios {
+  id_municip   Int          @id(map: "PK_n_municipios") @default(autoincrement())
+  codigo       String       @db.VarChar(5)
+  cod_prov     Int
+  activo       Boolean
+  descripcion  String       @db.VarChar(50)
+  n_provincias n_provincias @relation(fields: [cod_prov], references: [id_prov], onUpdate: NoAction, map: "FKn_municipi401260")
+  p_empleado   p_empleado[]
+
+  @@index([cod_prov], map: "icod_prov_n_municipios")
+}
+
+model n_org_masas {
+  id_org_masa Int           @id(map: "PK_n_org_masas") @default(autoincrement())
+  codigo      String        @db.VarChar(50)
+  descripcion String        @db.VarChar(50)
+  p_org_masas p_org_masas[]
+}
+
+model n_pagos {
+  id_pagos                Int               @id(map: "PK_n_pagos") @default(autoincrement())
+  codigo                  String?           @unique(map: "IX_n_pagos") @db.NChar(10)
+  descripcion             String?           @db.NChar(250)
+  pago_cuc                Boolean           @default(false, map: "DF_n_pagos_pago_cuc")
+  descuenta_contravalor   Boolean           @default(false, map: "DF_n_pagos_descuenta_contravalor")
+  por_importe             Boolean           @default(false, map: "DF_n_pagos_por_importe")
+  por_porciento           Boolean           @default(false, map: "DF_n_pagos_por_porciento")
+  porciento_fijo          Boolean           @default(false, map: "DF_n_pagos_porciento_fijo")
+  automatico              Boolean           @default(false, map: "DF_n_pagos_automatico")
+  por_reporte_incidencias Boolean           @default(false, map: "DF_n_pagos_por_reporte_incidencias")
+  estructura_salarial     Boolean           @default(false, map: "DF_n_pagos_estructura_salarial")
+  ac_dias_vac             Boolean           @default(false, map: "DF_n_pagos_ac_dias_vac")
+  ac_imp_vac              Boolean           @default(false, map: "DF_n_pagos_ac_imp_vac")
+  ac_dias_snc             Boolean           @default(false, map: "DF_n_pagos_ac_dias_snc")
+  ac_imp_snc              Boolean           @default(false, map: "DF_n_pagos_ac_imp_snc")
+  a_salario_promedio      Boolean           @default(false, map: "DF_n_pagos_a_salario_promedio")
+  a_salario_fijo          Boolean           @default(false, map: "DF_n_pagos_a_salario_fijo")
+  a_promedio_sub          Boolean           @default(false, map: "DF_n_pagos_a_promedio_sub")
+  a_promedio_mat          Boolean           @default(false, map: "DF_n_pagos_a_promedio_mat")
+  a_promedio_int_garan    Boolean           @default(false, map: "DF_n_pagos_a_promedio_int_garan")
+  a_base_pago_result      Boolean           @default(false, map: "DF_n_pagos_a_base_pago_result")
+  id_formula              Int?
+  aprobado                Boolean           @default(false, map: "DF_n_pagos_aprobado")
+  clave_snc               String?           @db.NChar(10)
+  activo                  Boolean           @default(true, map: "DF_n_pagos_activo")
+  a_salario_devengado     Boolean           @default(false, map: "DF_n_pagos_a_salario_devengado")
+  a_tarifa_aprobada       Boolean           @default(false, map: "DF_n_pagos_a_tarifa_aprobada")
+  a_aporte_ss             Boolean           @default(false, map: "DF_n_pagos_a_aporte_ss")
+  acum_aporte             Boolean           @default(false, map: "DF_n_pagos_a_aporte_ss1")
+  ac_imp_h_extra          Boolean           @default(false, map: "DF_n_pagos_ac_imp_h_extra")
+  h_pagos                 h_pagos[]
+  i_pagos                 i_pagos[]
+  n_plantilla             n_plantilla[]     @ignore
+  p_concepto_pago         p_concepto_pago[]
+  p_mov_pagos             p_mov_pagos[]
+}
+
+model n_peri_extra {
+  id_peri          Int    @id(map: "PK_n_peri_extra") @default(autoincrement())
+  horas_jornaleros Float?
+  dias_feriados    Int?
+}
+
+model n_periodo {
+  id_peri                   Int                         @id(map: "PK_n_periodo") @default(autoincrement())
+  nombre                    String                      @db.VarChar(50)
+  grupo_pago                Int
+  fecha_inicio              DateTime                    @db.DateTime
+  fecha_fin                 DateTime                    @db.DateTime
+  activo                    Boolean                     @default(false, map: "DF_n_periodo_activo")
+  orden                     Int
+  cerrado                   Boolean                     @default(false, map: "DF_n_periodo_cerrado")
+  id_peri_zun               Int?
+  orden_historico           Int?
+  id_ejerc                  Int?
+  ejercicio                 Int?
+  Ajustes                   Ajustes[]                   @ignore
+  h_empleado                h_empleado[]                @ignore
+  h_estimulacion_mn         h_estimulacion_mn[]         @ignore
+  h_incidencias             h_incidencias[]
+  h_nominilla               h_nominilla[]
+  h_porcientos              h_porcientos?
+  h_ptos_eval               h_ptos_eval[]               @ignore
+  h_snc                     h_snc[]
+  h_submayor_vac            h_submayor_vac[]
+  i_empleado                i_empleado[]
+  i_estimulacion_mn         i_estimulacion_mn[]
+  i_horas_mes_jornaleros    i_horas_mes_jornaleros[]
+  i_incidencias             i_incidencias[]
+  i_ptos_eval               i_ptos_eval[]
+  i_snc                     i_snc[]
+  i_submayor_vac            i_submayor_vac[]
+  indice_nomina             indice_nomina[]
+  nomina_cuc                nomina_cuc[]
+  nomina_gar                nomina_gar[]
+  nomina_imp                nomina_imp[]
+  nomina_imp_rangos         nomina_imp_rangos[]
+  nomina_sal                nomina_sal[]
+  nomina_sr                 nomina_sr[]
+  nomina_sub                nomina_sub[]
+  nomina_vac                nomina_vac[]
+  p_accid_trabajo           p_accid_trabajo[]
+  p_contrato                p_contrato[]
+  p_dias_no_lab             p_dias_no_lab[]
+  p_dietas                  p_dietas[]                  @ignore
+  p_fluctuacion             p_fluctuacion?
+  p_franco                  p_franco[]
+  p_incidencias             p_incidencias[]
+  p_incidencias_modificadas p_incidencias_modificadas[]
+  p_tarjeta_asistencia      p_tarjeta_asistencia[]
+  ph_empleado               ph_empleado[]
+  ph_incidencias            ph_incidencias[]
+  reintegros                reintegros[]
+  sub_mayor_ret             sub_mayor_ret[]
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model n_plantilla {
+  empleado   String     @db.VarChar(7)
+  concepto   String     @db.NChar(10)
+  importe    Decimal    @db.Decimal(18, 2)
+  n_pagos    n_pagos    @relation(fields: [concepto], references: [codigo], onUpdate: NoAction, map: "FK_n_plantilla_n_pagos")
+  p_empleado p_empleado @relation(fields: [empleado], references: [no_interno], onUpdate: NoAction, map: "FK_n_plantilla_p_empleado")
+
+  @@ignore
+}
+
+model n_profesion_ofic {
+  id_profesion_ofic Int          @id(map: "PK_n_profesion_ofic") @default(autoincrement())
+  descripcion       String       @db.VarChar(50)
+  codigo            String       @db.VarChar(50)
+  cod_correlacion   Int
+  p_empleado        p_empleado[]
+}
+
+model n_provincias {
+  id_prov      Int            @id(map: "PK_n_provincias") @default(autoincrement())
+  codigo       String         @unique(map: "IX_n_provincias") @db.Char(5)
+  descripcion  String         @db.VarChar(50)
+  activo       Boolean
+  n_municipios n_municipios[]
+}
+
+model n_retenciones {
+  id_rete       Int             @id(map: "PK_n_retenciones") @default(autoincrement())
+  codigo        String          @db.Char(5)
+  descripcion   String          @db.VarChar(50)
+  clasificacion Int
+  activo        Boolean
+  deuda_inicial Boolean
+  h_retenciones h_retenciones[]
+  i_retenciones i_retenciones[]
+  sys_lista     sys_lista       @relation(fields: [clasificacion], references: [id_lista], onUpdate: NoAction, map: "FK_n_retenciones_clasificacion")
+  p_retenciones p_retenciones[]
+  sub_mayor_ret sub_mayor_ret[]
+
+  @@index([clasificacion], map: "iclasificacion_n_retenciones")
+}
+
+model n_sanciones {
+  id_sancion   Int            @id(map: "PK__n_sanciones__540C7B00") @default(autoincrement())
+  codigo       String         @db.VarChar(50)
+  descripcion  String         @db.VarChar(50)
+  tiempo       String         @db.VarChar(255)
+  p_sanciones  p_sanciones[]
+  ph_sanciones ph_sanciones[]
+}
+
+model n_secuencias {
+  id_secuencia Int        @id(map: "PK_n_secuencias") @default(autoincrement())
+  orden        Int
+  id_turno     Int
+  id_horario   Int
+  n_horarios   n_horarios @relation(fields: [id_horario], references: [id_horario], onDelete: Cascade, onUpdate: NoAction, map: "FK_n_secuencias_n_horarios1")
+  n_turnos     n_turnos   @relation(fields: [id_turno], references: [id_turno], onUpdate: NoAction, map: "FK_n_secuencias_n_turnos1")
+
+  @@index([id_horario], map: "iid_horario_n_secuencias")
+  @@index([id_turno], map: "iid_turno_n_secuencias")
+}
+
+model n_sistemas_pago_result {
+  id_pago_result Int       @id(map: "PK_n_sistemas_pago_result") @default(autoincrement())
+  codigo         String    @db.Char(2)
+  descripcion    String    @db.VarChar(250)
+  activo         Boolean
+  p_pagos        p_pagos[]
+}
+
+model n_subsidios {
+  id_subsidio             Int               @id(map: "PK_n_subsidios") @default(autoincrement())
+  codigo                  String?           @unique(map: "IX_n_subsidios") @db.NChar(10)
+  descripcion             String?           @db.NChar(250)
+  id_clasificacion        Int?
+  utiliza_promedio        Boolean?
+  porciento_pagar         Float?
+  id_ausencia_asociada    Int?
+  id_a_promedio_sub       Int?
+  id_a_promedio_mat       Int?
+  id_a_promedio_inte      Int?
+  a_vacaciones_dias       Boolean?
+  a_vacaciones_importe    Boolean?
+  a_snc_dias              Boolean?
+  id_a_snc_dias           Int?
+  aporta_seguridad_social Boolean?
+  clave_snc               String?           @db.NChar(10)
+  activo                  Boolean?
+  h_subsidio              h_subsidio[]
+  i_subsidio              i_subsidio[]
+  p_accid_trabajo         p_accid_trabajo[]
+}
+
+model n_tipo_nomina {
+  id_tipo_nomina Int     @id(map: "PK_n_tipo_nomina") @default(autoincrement())
+  descripcion    String  @db.VarChar(50)
+  activo         Boolean
+}
+
+model n_tipo_plaza {
+  id_tipo_plaza    Int          @id(map: "PK_n_tipo_plaza") @default(autoincrement())
+  codigo           String       @db.VarChar(50)
+  descripcion      String       @db.VarChar(50)
+  id_tipo_contrato Int?
+  n_contrato       n_contrato?  @relation(fields: [id_tipo_contrato], references: [id_tipo_contrato], onDelete: NoAction, onUpdate: NoAction, map: "FK_n_tipo_plaza_n_contrato")
+  p_empleado       p_empleado[]
+
+  @@index([id_tipo_contrato], map: "iid_tipo_contrato_n_tipo_plaza")
+}
+
+model n_turnos {
+  id_turno             Int                    @id(map: "PK_n_turnos") @default(autoincrement())
+  codigo               String                 @db.VarChar(50)
+  descripcion          String                 @db.VarChar(150)
+  hora_entrada         String                 @db.VarChar(10)
+  hora_salida          String                 @db.VarChar(10)
+  tiempo_descanso      String?                @db.VarChar(10)
+  activo               Boolean
+  tiempo_trabajo       String?                @db.VarChar(10)
+  media_jornada        String?                @db.VarChar(10)
+  n_brigadas           n_brigadas[]
+  n_secuencias         n_secuencias[]
+  p_tarjeta_asistencia p_tarjeta_asistencia[]
+}
+
+model n_ubicacion_defensa {
+  id_ubicacion Int          @id(map: "PK_n_ubicacion_defensa") @default(autoincrement())
+  codigo       String       @db.VarChar(50)
+  descripcion  String       @db.VarChar(250)
+  um           Boolean      @default(false, map: "DF_n_ubicacion_defensa_um")
+  activo       Boolean      @default(false, map: "DF_n_ubicacion_defensa_activo")
+  p_empleado   p_empleado[]
+}
+
+model n_unidad_org {
+  id_uorg            Int                  @id(map: "PK_n_unidad_org") @default(autoincrement())
+  descripcion        String               @db.VarChar(250)
+  codigo             String               @unique(map: "IX_n_unidad_org") @db.VarChar(15)
+  activo             Boolean
+  clasificacion      String?              @db.VarChar(50)
+  cod_sucursal       String?              @db.VarChar(50)
+  h_empleado         h_empleado[]         @ignore
+  h_nominilla        h_nominilla[]
+  h_plantilla_cargos h_plantilla_cargos[]
+  p_empleado         p_empleado[]
+  p_mov_detalle      p_mov_detalle[]
+  plan_p2            plan_p2[]
+}
+
+model nomina_cuc {
+  Id_nomina_cuc  Int        @id(map: "PK_nomina_cuc") @default(autoincrement())
+  no_interno     String     @db.VarChar(7)
+  id_periodo     Int
+  num_nominilla  Int?
+  estimulo       Decimal    @db.Decimal(18, 2)
+  comedor_obrero Decimal    @db.Decimal(18, 2)
+  otros_cuc      Decimal    @db.Decimal(18, 2)
+  deveng_cuc     Decimal    @db.Decimal(18, 2)
+  neto_cuc       Decimal    @db.Decimal(18, 2)
+  n_periodo      n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_nomina_cuc_n_periodo")
+  p_empleado     p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_cuc_p_empleado")
+}
+
+model nomina_gar {
+  Id_nomina_gar   Int        @id(map: "PK_nomina_gar") @default(autoincrement())
+  no_interno      String     @db.VarChar(7)
+  id_periodo      Int
+  num_nominilla   Int?
+  interrupto      Decimal    @db.Decimal(18, 2)
+  disponible      Decimal    @db.Decimal(18, 2)
+  otras_gar       Decimal    @db.Decimal(18, 2)
+  deveng_garantia Decimal    @db.Decimal(18, 2)
+  aporte_gar      Decimal    @db.Decimal(18, 2)
+  reten_gar       Decimal    @db.Decimal(18, 2)
+  neto_garantia   Decimal    @db.Decimal(18, 2)
+  dias_gar        Int
+  n_periodo       n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_nomina_gar_n_periodo")
+  p_empleado      p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_gar_p_empleado")
+}
+
+model nomina_imp {
+  id_nomina_imp    Int         @id(map: "PK_nomina_imp") @default(autoincrement())
+  no_interno       String?     @db.VarChar(7)
+  nombre           String?     @db.VarChar(250)
+  centro_costo     String?     @db.VarChar(50)
+  c_costo          String?     @db.VarChar(250)
+  unidad_org       String?     @db.VarChar(50)
+  u_organ          String?     @db.VarChar(250)
+  salario          Decimal?    @db.Decimal(18, 2)
+  vacaciones       Decimal?    @db.Decimal(18, 2)
+  garantia         Decimal?    @db.Decimal(18, 2)
+  nominilla        Decimal?    @db.Decimal(18, 2)
+  total_mn         Decimal?    @db.Decimal(18, 2)
+  aporte_ss        Decimal?    @db.Decimal(18, 2)
+  impuesto1        Decimal?    @db.Decimal(18, 2)
+  impuesto2        Decimal?    @db.Decimal(18, 2)
+  neto             Decimal?    @db.Decimal(18, 2)
+  fechainic        DateTime?   @db.DateTime
+  fechafin         DateTime?   @db.DateTime
+  aporte           Decimal?    @db.Decimal(18, 2)
+  porciento1       Decimal?    @db.Decimal(18, 2)
+  porciento2       Decimal?    @db.Decimal(18, 2)
+  id_periodo       Int?
+  impuesto1aporte  Decimal?    @db.Decimal(9, 2)
+  porciento1aporte Decimal?    @db.Decimal(9, 2)
+  impuesto2aporte  Decimal?    @db.Decimal(9, 2)
+  porciento2aporte Decimal?    @db.Decimal(9, 2)
+  n_periodo        n_periodo?  @relation(fields: [id_periodo], references: [id_peri], onDelete: NoAction, onUpdate: NoAction, map: "FK_nomina_imp_n_periodo")
+  p_empleado       p_empleado? @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_imp_p_empleado")
+}
+
+model nomina_imp_rangos {
+  id_nomina_imp        Int                    @id(map: "PK_nomina_imp_rangos") @default(autoincrement())
+  no_interno           String?                @db.VarChar(7)
+  nombre               String?                @db.VarChar(250)
+  centro_costo         String?                @db.VarChar(50)
+  c_costo              String?                @db.VarChar(250)
+  unidad_org           String?                @db.VarChar(50)
+  u_organ              String?                @db.VarChar(250)
+  salario              Decimal?               @db.Decimal(18, 2)
+  vacaciones           Decimal?               @db.Decimal(18, 2)
+  garantia             Decimal?               @db.Decimal(18, 2)
+  nominilla            Decimal?               @db.Decimal(18, 2)
+  total_mn             Decimal?               @db.Decimal(18, 2)
+  id_periodo           Int?
+  n_periodo            n_periodo?             @relation(fields: [id_periodo], references: [id_peri], onDelete: NoAction, onUpdate: NoAction, map: "FK_nomina_imp_r_n_periodo")
+  p_empleado           p_empleado?            @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_imp_r_p_empleado")
+  nomina_imp_rangos_ap nomina_imp_rangos_ap[]
+}
+
+model nomina_imp_rangos_ap {
+  id_nomina_imp_r   Int               @id(map: "PK_nomina_imp_rangos_ap") @default(autoincrement())
+  id_nomina_imp     Int
+  idaporte          Int
+  desde             Decimal?          @db.Decimal(18, 2)
+  hasta             Decimal?          @db.Decimal(18, 2)
+  porciento         Decimal?          @db.Decimal(18, 2)
+  impuesto          Decimal?          @db.Decimal(18, 2)
+  nomina_imp_rangos nomina_imp_rangos @relation(fields: [id_nomina_imp], references: [id_nomina_imp], onDelete: Cascade, onUpdate: NoAction, map: "FK_nomina_imp_rap_nomina_imp_r")
+}
+
+model nomina_sal {
+  Id_nomina_sal  Int        @id(map: "PK_nomina_sal") @default(autoincrement())
+  no_interno     String     @db.VarChar(7)
+  id_periodo     Int
+  num_nominilla  Int?
+  dias_lab       Decimal    @db.Decimal(7, 4)
+  salario_escala Decimal    @db.Decimal(18, 2)
+  pago_2         Decimal    @db.Decimal(18, 2)
+  pago_3         Decimal    @db.Decimal(18, 2)
+  pago_4         Decimal    @db.Decimal(18, 2)
+  otros          Decimal    @db.Decimal(18, 2)
+  dias_sal_prom  Decimal    @db.Decimal(18, 2)
+  desc_deveng    Decimal    @db.Decimal(18, 2)
+  deveng_salario Decimal    @db.Decimal(18, 2)
+  otros_pagos    Decimal    @db.Decimal(18, 2)
+  aporte_sal     Decimal    @db.Decimal(18, 2)
+  reten_sal      Decimal    @db.Decimal(18, 2)
+  otros_desc     Decimal    @db.Decimal(18, 2)
+  neto_salario   Decimal    @db.Decimal(18, 2)
+  n_periodo      n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_nomina_sal_n_periodo")
+  p_empleado     p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_sal_p_empleado")
+}
+
+model nomina_sr {
+  Id_nomina_sr    Int        @id(map: "PK_nomina_sr") @default(autoincrement())
+  no_interno      String     @db.VarChar(7)
+  id_periodo      Int
+  num_nominilla   Int?
+  neto_reclam_mn  Decimal?   @db.Decimal(18, 2)
+  neto_reclam_cuc Decimal?   @db.Decimal(18, 2)
+  n_periodo       n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_nomina_sr_n_periodo")
+  p_empleado      p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_sr_p_empleado")
+}
+
+model nomina_sub {
+  Id_nomina_sub    Int        @id(map: "PK_nomina_sub") @default(autoincrement())
+  no_interno       String     @db.VarChar(7)
+  id_periodo       Int
+  num_nominilla    Int?
+  dias_sub         Int
+  enfermedad       Decimal    @db.Decimal(18, 2)
+  accidente        Decimal    @db.Decimal(18, 2)
+  maternidad       Decimal    @db.Decimal(18, 2)
+  prestac_soc      Decimal    @db.Decimal(18, 2)
+  deveng_subsidios Decimal    @db.Decimal(18, 2)
+  aporte_sub       Decimal    @db.Decimal(18, 2)
+  reten_sub        Decimal    @db.Decimal(18, 2)
+  neto_subsidios   Decimal    @db.Decimal(18, 2)
+  n_periodo        n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_nomina_sub_n_periodo")
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_sub_p_empleado")
+}
+
+model nomina_vac {
+  Id_nomina_vac Int        @id(map: "PK_nomina_vac") @default(autoincrement())
+  no_interno    String     @db.VarChar(7)
+  id_periodo    Int
+  num_nominilla Int?
+  dias_vac      Decimal    @db.Decimal(7, 4)
+  deveng_vac    Decimal    @db.Decimal(18, 2)
+  aporte_vac    Decimal    @db.Decimal(18, 2)
+  reten_vac     Decimal    @db.Decimal(18, 2)
+  neto_vac      Decimal    @db.Decimal(18, 2)
+  n_periodo     n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_nomina_vac_n_periodo")
+  p_empleado    p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_nomina_vac_p_empleado")
+}
+
+model p_accid_trabajo {
+  id_accidente Int         @id(map: "PK__p_accid_trabajo__57DD0BE4") @default(autoincrement())
+  id_periodo   Int
+  mortal       Boolean
+  id_subsidio  Int
+  no_interno   String      @db.VarChar(7)
+  p_empleado   p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_accid_trabajo_p_empleado")
+  n_periodo    n_periodo   @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FKp_accid_tr280357")
+  n_subsidios  n_subsidios @relation(fields: [id_subsidio], references: [id_subsidio], onUpdate: NoAction, map: "FKp_accid_tr349444")
+
+  @@index([id_periodo], map: "iid_periodo_p_accid_trabajo")
+  @@index([id_subsidio], map: "iid_subsidio_p_accid_trabajo")
+  @@index([no_interno], map: "ino_interno_p_accid_trabajo")
+}
+
+model p_anexo {
+  id_p_anexo    Int        @id(map: "PK_p_anexo") @default(autoincrement())
+  actual        Boolean
+  doc_anexo     Bytes      @db.Binary(1000)
+  id_p_contrato Int
+  p_contrato    p_contrato @relation(fields: [id_p_contrato], references: [id_p_contrato], onUpdate: NoAction, map: "FKp_anexo854742")
+
+  @@index([id_p_contrato], map: "iid_p_contrato_p_anexo")
+}
+
+model p_brigada {
+  id_p_brigada Int        @id(map: "PK_p_brigada") @default(autoincrement())
+  no_interno   String     @db.VarChar(7)
+  id_brigada   Int
+  fecha_inicio DateTime   @db.DateTime
+  n_brigadas   n_brigadas @relation(fields: [id_brigada], references: [id_brigada], onUpdate: NoAction, map: "FK_p_brigada_n_brigadas")
+  p_empleado   p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_brigada_p_empleado")
+
+  @@index([id_brigada], map: "iid_brigada_p_brigada")
+  @@index([no_interno], map: "ino_interno_p_brigada")
+}
+
+model p_concepto_pago {
+  id_cpago   Int        @id(map: "PK_p_concepto_pago") @default(autoincrement())
+  no_interno String     @db.VarChar(7)
+  codigo_cp  Int
+  importe    Decimal    @db.Decimal(7, 2)
+  porciento  Decimal    @db.Decimal(3, 1)
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_concepto_pago_p_empleado")
+  n_pagos    n_pagos    @relation(fields: [codigo_cp], references: [id_pagos], onUpdate: NoAction, map: "FKp_concepto721352")
+
+  @@index([codigo_cp], map: "iid_pagos_p_concepto_pago")
+  @@index([no_interno], map: "ino_interno_p_concepto_pago")
+}
+
+model p_contrato {
+  id_p_contrato    Int        @id(map: "PK_p_contrato") @default(autoincrement())
+  fecha_inicio     DateTime   @db.DateTime
+  fecha_fin        DateTime?  @db.DateTime
+  anexo            Boolean
+  actual           Boolean
+  no_interno       String     @db.VarChar(7)
+  id_tipo_contrato Int
+  id_periodo       Int        @default(0, map: "DF__p_contrat__id_pe__61FB72FB")
+  id_tipo_plaza    Int?
+  p_anexo          p_anexo[]
+  n_periodo        n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_p_contrato_id_periodo")
+  n_contrato       n_contrato @relation(fields: [id_tipo_contrato], references: [id_tipo_contrato], onUpdate: NoAction, map: "FK_p_contrato_id_tipo_contrato")
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_contrato_no_interno")
+
+  @@index([id_periodo], map: "iid_periodo_p_contrato")
+  @@index([id_tipo_contrato], map: "iid_tipo_contrato_p_contrato")
+  @@index([no_interno], map: "ino_interno_p_contrato")
+}
+
+model p_credencial {
+  no_interno String     @id(map: "PK_p_credencial") @db.VarChar(7)
+  credencial Int?
+  huella0    String?    @db.NVarChar(Max)
+  huella1    String?    @db.NVarChar(Max)
+  huella2    String?    @db.NVarChar(Max)
+  huella3    String?    @db.NVarChar(Max)
+  huella4    String?    @db.NVarChar(Max)
+  huella5    String?    @db.NVarChar(Max)
+  huella6    String?    @db.NVarChar(Max)
+  huella7    String?    @db.NVarChar(Max)
+  huella8    String?    @db.NVarChar(Max)
+  huella9    String?    @db.NVarChar(Max)
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_credencial_no_interno")
+}
+
+model p_descuentos {
+  id_descuento Int          @id(map: "PK_p_descuentos") @default(autoincrement())
+  no_interno   String       @db.VarChar(7)
+  codigo       Int
+  importe      Decimal      @db.Decimal(7, 2)
+  porciento    Decimal      @db.Decimal(3, 1)
+  p_empleado   p_empleado   @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_descuentos_p_empleado")
+  n_descuentos n_descuentos @relation(fields: [codigo], references: [id_descuento], onUpdate: NoAction, map: "FKp_descuent446540")
+
+  @@index([codigo], map: "icodigo_p_descuentos")
+  @@index([no_interno], map: "ino_interno_p_descuentos")
+}
+
+model p_dias_no_lab {
+  id_dias_no_lab Int       @id(map: "PK_p_dias_no_lab") @default(autoincrement())
+  fecha          DateTime  @db.DateTime
+  motivo         String    @db.VarChar(50)
+  clave          String    @db.VarChar(3)
+  id_periodo     Int
+  n_periodo      n_periodo @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_p_dias_no_lab_id_periodo")
+
+  @@index([id_periodo], map: "iid_periodo_p_dias_no_lab")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model p_dietas {
+  no_interno String     @db.VarChar(7)
+  id_periodo Int
+  dias       Decimal    @db.Decimal(18, 2)
+  n_periodo  n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_p_dietas_n_periodo")
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onUpdate: NoAction, map: "FK_p_dietas_p_empleado")
+
+  @@ignore
+}
+
+model p_empleado {
+  nombre                             String                               @db.VarChar(50)
+  apell1                             String                               @db.VarChar(50)
+  apell2                             String?                              @db.VarChar(50)
+  no_expediente                      String                               @db.VarChar(11)
+  no_interno                         String                               @id(map: "PK_p_empleado_1") @db.VarChar(7)
+  fecha_nac                          DateTime                             @db.DateTime
+  sexo                               String                               @db.Char(1)
+  unidad_org                         Int
+  grupo_escala                       Int
+  cat_ocup                           Int
+  cargo                              Int
+  fecha_alta                         DateTime                             @db.DateTime
+  activo                             Boolean
+  fecha_baja                         DateTime?                            @db.DateTime
+  baja                               Boolean
+  direccion                          String?                              @db.Text
+  id_municipio                       Int?
+  id_prov                            Int?
+  foto                               Bytes?                               @db.Image
+  nombre_madre                       String?                              @db.VarChar(50)
+  nombre_padre                       String?                              @db.VarChar(50)
+  estado_civil                       String?                              @db.VarChar(50)
+  no_hijos                           Int?
+  fecha_cargo                        DateTime?                            @db.DateTime
+  fecha_inicio_sector                DateTime?                            @db.DateTime
+  id_cat_cientifica                  Int?                                 @default(0, map: "DF__p_emplead__id_ca__68A8708A")
+  id_cat_docente                     Int?                                 @default(0, map: "DF__p_emplead__id_ca__699C94C3")
+  id_profesion_ofic                  Int?
+  id_escolaridad                     Int?
+  id_calificacion                    Int?
+  id_tipo_plaza                      Int?
+  id_escala_antiguedad               Int?
+  color_piel                         String?                              @db.Char(1)
+  estatura                           Decimal?                             @db.Decimal(3, 2)
+  conyugue                           String?                              @db.VarChar(50)
+  nucleo_familiar                    Int?
+  telefono                           String?                              @db.VarChar(50)
+  no_licencia                        String?                              @db.VarChar(50)
+  situacion_defensa                  Int?
+  talla_camisa                       String?                              @db.VarChar(4)
+  talla_pantalon                     Int?
+  talla_zapatos                      Int?
+  unidad_militar                     String?                              @db.VarChar(50)
+  talla_saco                         Int?
+  talla_gorro                        Int?
+  ruta                               String?                              @db.VarChar(50)
+  tipo_cuadro                        String?                              @db.VarChar(50)
+  retroactivo                        Boolean                              @default(false, map: "DF_p_empleado_retroactivo")
+  fid_horario                        Int?
+  fecha_inicio_SM                    DateTime?                            @db.DateTime
+  fecha_fin_SM                       DateTime?                            @db.DateTime
+  fecha_graduacion                   DateTime?                            @db.DateTime
+  lugar_graduacion                   String?                              @db.VarChar(Max)
+  fecha_inicio_vida_laboral          DateTime?                            @db.DateTime
+  fecha_inicio_horario               DateTime?                            @db.DateTime
+  fuente_procedencia                 Int?
+  no_taquilla                        String?                              @db.VarChar(50)
+  Ajustes                            Ajustes[]                            @ignore
+  con_tmp_empleado                   con_tmp_empleado?
+  desglose                           desglose[]                           @ignore
+  h_empleado                         h_empleado[]                         @ignore
+  h_incidencias                      h_incidencias[]
+  h_nominilla                        h_nominilla[]
+  h_ptos_eval                        h_ptos_eval[]                        @ignore
+  h_snc                              h_snc[]
+  h_submayor_vac                     h_submayor_vac[]
+  i_empleado                         i_empleado[]
+  i_horas_mes_jornaleros             i_horas_mes_jornaleros[]
+  i_nominilla                        i_nominilla[]
+  i_ptos_eval                        i_ptos_eval[]
+  i_salario_promedio                 i_salario_promedio?
+  n_plantilla                        n_plantilla[]                        @ignore
+  nomina_cuc                         nomina_cuc[]
+  nomina_gar                         nomina_gar[]
+  nomina_imp                         nomina_imp[]
+  nomina_imp_rangos                  nomina_imp_rangos[]
+  nomina_sal                         nomina_sal[]
+  nomina_sr                          nomina_sr[]
+  nomina_sub                         nomina_sub[]
+  nomina_vac                         nomina_vac[]
+  p_accid_trabajo                    p_accid_trabajo[]
+  p_brigada                          p_brigada[]
+  p_concepto_pago                    p_concepto_pago[]
+  p_contrato                         p_contrato[]
+  p_credencial                       p_credencial?
+  p_descuentos                       p_descuentos[]
+  p_dietas                           p_dietas[]                           @ignore
+  n_escolaridad                      n_escolaridad?                       @relation(fields: [id_escolaridad], references: [id_escolaridad], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_id_escolaridad")
+  n_calificacion                     n_calificacion?                      @relation(fields: [id_calificacion], references: [id_calificacion], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_n_calificacion")
+  n_cargos                           n_cargos                             @relation(fields: [cargo], references: [id_cargos], onUpdate: NoAction, map: "FK_p_empleado_n_cargos")
+  n_cat_ocupacion                    n_cat_ocupacion                      @relation(fields: [cat_ocup], references: [id_categ], onUpdate: NoAction, map: "FK_p_empleado_n_cat_ocupacion")
+  n_grupo_escala                     n_grupo_escala                       @relation(fields: [grupo_escala], references: [id_grupo_sal], onUpdate: NoAction, map: "FK_p_empleado_n_grupo_escala")
+  n_horarios                         n_horarios?                          @relation(fields: [fid_horario], references: [id_horario], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_n_horarios")
+  n_municipios                       n_municipios?                        @relation(fields: [id_municipio], references: [id_municip], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_n_municipios")
+  n_profesion_ofic                   n_profesion_ofic?                    @relation(fields: [id_profesion_ofic], references: [id_profesion_ofic], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_n_profesion_ofic")
+  n_tipo_plaza                       n_tipo_plaza?                        @relation(fields: [id_tipo_plaza], references: [id_tipo_plaza], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_n_tipo_plaza")
+  n_ubicacion_defensa                n_ubicacion_defensa?                 @relation(fields: [situacion_defensa], references: [id_ubicacion], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_n_ubicacion_defensa")
+  n_unidad_org                       n_unidad_org                         @relation(fields: [unidad_org], references: [id_uorg], onUpdate: NoAction, map: "FK_p_empleado_n_unidad_org")
+  p_escala_antiguedad                p_escala_antiguedad?                 @relation(fields: [id_escala_antiguedad], references: [id_escala_antiguedad], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_p_escala_antiguedad")
+  sys_lista                          sys_lista?                           @relation(fields: [fuente_procedencia], references: [id_lista], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_empleado_sys_lista")
+  p_franco                           p_franco[]
+  p_horario_libre                    p_horario_libre[]
+  p_idioma                           p_idioma[]
+  p_incidencias                      p_incidencias[]
+  p_incidencias_modificadas          p_incidencias_modificadas[]
+  p_licencia                         p_licencia[]
+  p_marcaciones                      p_marcaciones[]
+  p_movimientos                      p_movimientos[]
+  p_org_masas                        p_org_masas[]
+  p_org_politicas                    p_org_politicas[]
+  p_pagos                            p_pagos[]
+  p_pagos_tm                         p_pagos_tm[]
+  p_retenciones                      p_retenciones[]
+  p_sanciones                        p_sanciones[]
+  p_tarjeta_asistencia               p_tarjeta_asistencia[]
+  p_temp_incidencia                  p_temp_incidencia[]
+  ph_empleado                        ph_empleado[]
+  ph_incidencias                     ph_incidencias[]
+  ph_sanciones                       ph_sanciones[]
+  promedios_temporal                 promedios_temporal[]
+  reintegro_salario_no_reclamado_tmp reintegro_salario_no_reclamado_tmp[] @ignore
+  tarj_nominilla                     tarj_nominilla?
+  tarj_reporte                       tarj_reporte[]                       @ignore
+
+  @@index([cat_ocup], map: "icat_ocup_p_empleado")
+  @@index([fid_horario], map: "ifid_horario_p_empleado")
+  @@index([fuente_procedencia], map: "ifuente_procedencia_p_empleado")
+  @@index([grupo_escala], map: "igrupo_escala_p_empleado")
+  @@index([cargo], map: "iid_cargo_p_empleado")
+  @@index([id_calificacion], map: "iid_clasificacion_p_empleado")
+  @@index([id_escala_antiguedad], map: "iid_escala_antiguedad_p_empleado")
+  @@index([id_escolaridad], map: "iid_escolaridad_p_empleado")
+  @@index([id_municipio], map: "iid_municipio_p_empleado")
+  @@index([id_profesion_ofic], map: "iid_profesion_ofic_p_empleado")
+  @@index([id_tipo_plaza], map: "iid_tipo_plaza_p_empleado")
+  @@index([unidad_org], map: "iid_unidad_org_p_empleado")
+  @@index([situacion_defensa], map: "isituacion_defensa_p_empleado")
+}
+
+model p_enlaces_zunpr_tempus {
+  id_enlace     Int     @id(map: "PK_p_enlaces_zunpr_ih") @default(autoincrement())
+  id_aus_zunpr  Int
+  codigo_tempus String  @db.VarChar(50)
+  clave         String? @db.VarChar(4)
+}
+
+model p_escala_antiguedad {
+  id_escala_antiguedad Int              @id(map: "PK__p_escala_antigue__17036CC0") @default(autoincrement())
+  mas_de               Int
+  menos_de             Int
+  valor                Decimal          @db.Decimal(7, 2)
+  id_cat_antiguedad    Int
+  p_empleado           p_empleado[]
+  n_cat_antiguedad     n_cat_antiguedad @relation(fields: [id_cat_antiguedad], references: [id_cat_antiguedad], onUpdate: NoAction, map: "FKp_escala_a150649")
+
+  @@index([id_cat_antiguedad], map: "iid_cat_antiguedad_p_escala_antiguedad")
+}
+
+model p_fluctuacion {
+  id_periodo        Int       @id(map: "PK_p_fluctuacion")
+  cant_trabajadores Int
+  n_periodo         n_periodo @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_p_fluctuacion_n_periodo")
+}
+
+model p_franco {
+  id_franco  Int        @id(map: "PK__p_franco__0DCF0841") @default(autoincrement())
+  fecha      DateTime   @db.DateTime
+  no_interno String     @db.VarChar(7)
+  id_peri    Int
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_franco_p_empleado")
+  n_periodo  n_periodo  @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FKp_franco373924")
+
+  @@index([id_peri], map: "iid_peri_p_franco")
+  @@index([no_interno], map: "ino_interno_p_franco")
+}
+
+model p_horario_libre {
+  id_horario_libre Int        @id(map: "PK__p_horari__E6175E7B4486DCF9") @default(autoincrement())
+  no_interno       String     @db.VarChar(7)
+  id_horario       Int
+  n_horarios       n_horarios @relation(fields: [id_horario], references: [id_horario], onUpdate: NoAction, map: "FK_n_horario")
+  p_empleado       p_empleado @relation(fields: [no_interno], references: [no_interno], onUpdate: NoAction, map: "FK_p_empleado")
+}
+
+model p_idioma {
+  id_idioma      Int        @id(map: "PK__p_idioma__47A6A41B") @default(autoincrement())
+  certificado    Boolean
+  nombre_escuela String     @db.VarChar(50)
+  nivel          String     @db.VarChar(10)
+  como_lee       String     @db.VarChar(10)
+  como_escribe   String     @db.VarChar(10)
+  como_habla     String     @db.VarChar(10)
+  id_n_idioma    Int
+  no_interno     String     @db.VarChar(7)
+  p_empleado     p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_idioma_p_empleado")
+  n_idioma       n_idioma   @relation(fields: [id_n_idioma], references: [id_idioma], onUpdate: NoAction, map: "FKp_idioma987782")
+
+  @@unique([id_idioma, no_interno], map: "PK__p_idioma__4183B671")
+  @@index([id_n_idioma], map: "iid_n_idioma_p_idioma")
+  @@index([no_interno], map: "ino_interno_p_idioma")
+}
+
+model p_incidencias {
+  id_incidencias Int         @id(map: "PK__p_incidencias__3E1D39E1") @default(autoincrement())
+  fecha          DateTime    @db.DateTime
+  tiempo         Decimal     @db.Decimal(7, 4)
+  pagado         Boolean
+  no_interno     String      @db.VarChar(7)
+  id_peri        Int
+  id_ausencia    Int
+  tiempo_imp     String?     @db.VarChar(5)
+  manual         Boolean     @default(false, map: "DF_p_incidencias_manual")
+  n_ausencias    n_ausencias @relation(fields: [id_ausencia], references: [id_ausencia], onUpdate: NoAction, map: "FK_n_ausencias_p_incidencias")
+  p_empleado     p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_incidencias_no_interno")
+  n_periodo      n_periodo   @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FKp_incidenc353346")
+
+  @@index([id_ausencia], map: "iid_ausencia_p_incidencias")
+  @@index([id_peri], map: "iid_peri_p_incidencias")
+  @@index([no_interno], map: "ino_interno_p_incidencias")
+}
+
+model p_incidencias_modificadas {
+  id_incidencias Int         @id(map: "PK_p_incidencias_modificadas") @default(autoincrement())
+  tiempo         Decimal     @db.Decimal(7, 4)
+  no_interno     String      @db.VarChar(7)
+  id_peri        Int
+  id_ausencia    Int
+  tiempo_imp     String?     @db.VarChar(5)
+  n_ausencias    n_ausencias @relation(fields: [id_ausencia], references: [id_ausencia], onUpdate: NoAction, map: "FK_p_incidencias_modificadas_n_ausencias")
+  n_periodo      n_periodo   @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FK_p_incidencias_modificadas_n_periodo")
+  p_empleado     p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_incidencias_modificadas_p_empleado")
+}
+
+model p_licencia {
+  id_licencia Int
+  no_interno  String     @db.VarChar(7)
+  p_empleado  p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_licencia_p_empleado")
+  n_licencia  n_licencia @relation(fields: [id_licencia], references: [id_licencia], onUpdate: NoAction, map: "FKp_licencia887985")
+
+  @@id([id_licencia, no_interno], map: "PK_p_licencia")
+}
+
+model p_marca_comedor {
+  id_marca   Int      @id(map: "PK_p_marca_comedor") @default(autoincrement())
+  credencial Int
+  fecha      DateTime @db.DateTime
+  hora       String   @db.VarChar(50)
+  id_reloj   Int
+  c_reloj    c_reloj  @relation(fields: [id_reloj], references: [id_reloj], onUpdate: NoAction, map: "FK_p_marca_comedor_c_reloj")
+}
+
+model p_marcaciones {
+  id_marca   Int        @id(map: "PK_p_marcaciones") @default(autoincrement())
+  no_interno String     @db.VarChar(7)
+  fecha      DateTime   @db.DateTime
+  hora       String     @db.VarChar(50)
+  id_reloj   Int?
+  c_reloj    c_reloj?   @relation(fields: [id_reloj], references: [id_reloj], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_marcaciones_c_reloj")
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_marcaciones_p_empleado")
+
+  @@index([no_interno], map: "ino_interno_p_marcaciones")
+}
+
+model p_mov_detalle {
+  id_mov_detalle   Int              @id(map: "PK__p_mov_detalle__1960B67E") @default(autoincrement())
+  unidad_org       Int
+  cod_cargo        Int
+  grupo_escala     Int
+  centro_costo     Int
+  id_movimiento    Int
+  dias_sal_ant     Int?
+  regimen_salarial String?          @db.VarChar(50)
+  cat_ocupacional  Int?
+  tarifa_horaria   Decimal?         @db.Decimal(18, 4)
+  tarifa_diaria    Decimal?         @db.Decimal(18, 4)
+  fondo_tiempo     Int              @default(-1, map: "DF_p_mov_detalle_fondo_tiempo")
+  tipo_contrato    Int              @default(-1, map: "DF_p_mov_detalle_tipo_contrato")
+  modalidad        Int?
+  tipo_cuadro      String?          @db.VarChar(50)
+  n_cargos         n_cargos         @relation(fields: [cod_cargo], references: [id_cargos], onUpdate: NoAction, map: "FK_p_mov_detalle_n_cargos")
+  n_cat_ocupacion  n_cat_ocupacion? @relation(fields: [cat_ocupacional], references: [id_categ], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_mov_detalle_n_cat_ocupacion")
+  n_grupo_escala   n_grupo_escala   @relation(fields: [grupo_escala], references: [id_grupo_sal], onUpdate: NoAction, map: "FK_p_mov_detalle_n_grupo_escala")
+  n_jornada        n_jornada        @relation(fields: [fondo_tiempo], references: [id_jornada], onUpdate: NoAction, map: "FK_p_mov_detalle_n_jornada")
+  n_unidad_org     n_unidad_org     @relation(fields: [unidad_org], references: [id_uorg], onUpdate: NoAction, map: "FK_p_mov_detalle_n_unidad_org")
+  p_movimientos    p_movimientos    @relation(fields: [id_movimiento], references: [id_movimiento], onDelete: Cascade, map: "FK_p_mov_detalle_p_movimientos")
+  p_mov_pagos      p_mov_pagos[]
+
+  @@index([id_movimiento], map: "iid_movimiento_p_mov_detalle")
+}
+
+model p_mov_pagos {
+  id_mov_pagos   Int           @id(map: "PK__p_mov_pagos__5A3A55A2") @default(autoincrement())
+  codigo_cp      Int
+  importe        Decimal       @db.Decimal(7, 2)
+  porciento      Decimal       @default(0, map: "DF_p_mov_pagos_porciento") @db.Decimal(5, 1)
+  id_mov_detalle Int
+  n_pagos        n_pagos       @relation(fields: [codigo_cp], references: [id_pagos], onUpdate: NoAction, map: "FK_p_mov_pagos_n_pagos")
+  p_mov_detalle  p_mov_detalle @relation(fields: [id_mov_detalle], references: [id_mov_detalle], onDelete: Cascade, map: "FK_p_mov_pagos_p_mov_detalle")
+
+  @@index([id_mov_detalle], map: "iid_mov_detalle_p_mov_pagos")
+}
+
+model p_movimientos {
+  id_movimiento       Int                 @id(map: "PK__p_movimientos__7CA47C3F") @default(autoincrement())
+  fecha               DateTime            @db.DateTime
+  motivo              String              @db.VarChar(255)
+  tipo                String              @db.VarChar(1)
+  no_interno          String              @db.VarChar(7)
+  liquida_vac         Boolean?
+  id_periodo          Int                 @default(0, map: "DF__p_movimie__id_pe__7CAF6937")
+  id_motivo_alta_baja Int?                @default(0, map: "DF__p_movimie__id_mo__7DA38D70")
+  h_nominilla         h_nominilla[]
+  i_nominilla         i_nominilla[]
+  p_mov_detalle       p_mov_detalle[]
+  p_empleado          p_empleado          @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_movimiento_p_empleado")
+  n_motivo_alta_baja  n_motivo_alta_baja? @relation(fields: [id_motivo_alta_baja], references: [id_motivo_alta_baja], onDelete: NoAction, onUpdate: NoAction, map: "FKp_movimien838274")
+
+  @@index([id_motivo_alta_baja], map: "iid_motivo_alta_baja_p_movimientos")
+  @@index([no_interno], map: "ino_interno_p_movimientos")
+}
+
+model p_org_masas {
+  no_interno  String      @db.VarChar(7)
+  id_org_masa Int
+  p_empleado  p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_org_masa_p_empleado")
+  n_org_masas n_org_masas @relation(fields: [id_org_masa], references: [id_org_masa], onUpdate: NoAction, map: "FKp_org_masa218695")
+
+  @@id([no_interno, id_org_masa], map: "PK_p_org_masas_1")
+}
+
+model p_org_politicas {
+  id_org_politica Int        @id(map: "PK__p_org_politicas__6AEFE058") @default(autoincrement())
+  valor_org       String     @db.VarChar(1)
+  no_interno      String     @db.VarChar(7)
+  p_empleado      p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_org_politicas_no_interno")
+
+  @@index([no_interno], map: "ino_interno_p_org_politicas")
+}
+
+model p_pagos {
+  id_pago                Int                    @id(map: "PK_p_Pagos") @default(autoincrement())
+  grupo_pago             Int
+  reg_salarial           Int
+  th_reporte             Boolean
+  th_defecto             Decimal?               @db.Decimal(18, 4)
+  forma_cobro            Int?
+  tipo_contrato          Int?
+  fTiemp                 Int?
+  horas_mes              Decimal?               @map("horas/mes") @db.Decimal(7, 4)
+  dias_mes               Decimal?               @map("dias/mes") @db.Decimal(7, 4)
+  horas_dia              Decimal?               @map("horas/dia") @db.Decimal(7, 4)
+  centro_costo           Int?
+  sist_pago_result       Int
+  acum_vac               Boolean?
+  pago_vac               Boolean?
+  dias_inicial_vac       Decimal?               @db.Decimal(7, 4)
+  import_inicial_vac     Decimal?               @db.Decimal(18, 2)
+  dias_acum_vac          Decimal?               @db.Decimal(7, 4)
+  import_acum_vac        Decimal                @db.Decimal(18, 2)
+  term_contable          String                 @db.VarChar(50)
+  no_interno             String                 @db.VarChar(7)
+  th_diaria              Decimal?               @db.Decimal(18, 4)
+  media_jornada          Boolean                @default(false, map: "DF__p_pagos__media_j__0544AF38")
+  n_grupos_n             n_grupos_n             @relation(fields: [grupo_pago], references: [id_grupo_n], onUpdate: NoAction, map: "FK_p_pagos_n_grupos_n")
+  p_empleado             p_empleado             @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_pagos_p_empleado")
+  n_jornada              n_jornada?             @relation(fields: [fTiemp], references: [id_jornada], onDelete: NoAction, onUpdate: NoAction, map: "FKp_pagos669264")
+  n_sistemas_pago_result n_sistemas_pago_result @relation(fields: [sist_pago_result], references: [id_pago_result], onUpdate: NoAction, map: "FKp_pagos907768")
+
+  @@index([fTiemp], map: "ifTiemp_p_pagos")
+  @@index([grupo_pago], map: "igrupo_pago_p_pagos")
+  @@index([no_interno], map: "ino_interno_p_pagos")
+  @@index([sist_pago_result], map: "isist_pago_result_p_pagos")
+}
+
+model p_pagos_tm {
+  id_pagos_tm   Int        @id(map: "PK_p_pagos_tm") @default(autoincrement())
+  no_interno    String     @db.VarChar(7)
+  pago_tm_mn    Boolean    @default(false, map: "DF__p_pagos_t__pago___08211BE3")
+  pago_tm_cuc   Boolean    @default(false, map: "DF__p_pagos_t__pago___0915401C")
+  nombre_tm     String?    @db.VarChar(23)
+  cuenta_tm_cuc String?    @db.VarChar(16)
+  cuenta_tm_cup String?    @db.VarChar(16)
+  identif_banco String?    @db.VarChar(3)
+  p_empleado    p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_pagos_tm_p_empleado")
+
+  @@index([no_interno], map: "ino_interno_p_pagos_tm")
+}
+
+model p_retenciones {
+  cod_retencion Int           @id(map: "PK__p_retenciones__51300E55") @default(autoincrement())
+  no_interno    String        @db.VarChar(7)
+  no_retencion  String        @unique(map: "UQ__p_retenciones__5224328E") @db.VarChar(30)
+  deuda_inicial Decimal?      @db.Decimal(10, 2)
+  mensualidad   Decimal?      @db.Decimal(7, 2)
+  recargo       Decimal?      @default(0, map: "DF_p_retenciones_recargo") @db.Decimal(7, 2)
+  deuda_actual  Decimal?      @db.Decimal(7, 2)
+  fecha_inicio  DateTime      @db.DateTime
+  tipo          Int
+  observaciones String?       @db.Text
+  orden         Int
+  activo        Boolean
+  p_empleado    p_empleado    @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_retenciones_p_empleado")
+  n_retenciones n_retenciones @relation(fields: [tipo], references: [id_rete], onUpdate: NoAction, map: "FKp_retencio161277")
+
+  @@index([tipo], map: "iid_rete_p_retenciones")
+  @@index([no_interno], map: "ino_interno_p_retenciones")
+}
+
+model p_sanciones {
+  id_sanciones         Int         @id(map: "PK__p_sanciones__55F4C372") @default(autoincrement())
+  no_resolucion        String      @db.VarChar(30)
+  fecha_creacion       DateTime    @db.DateTime
+  fecha_notificacion   DateTime    @db.DateTime
+  fecha_fin            DateTime    @db.DateTime
+  id_sancion           Int
+  no_interno           String      @db.VarChar(7)
+  fecha_rehabilitacion DateTime    @db.DateTime
+  descripcion          String?     @db.Text
+  causal               Int?
+  reclamada_ojlb       Boolean     @default(false, map: "DF_p_sanciones_reclamada_ojlb")
+  causal_recl          Int?
+  quien_demanda        String?     @db.VarChar(50)
+  pide_revision        String?     @db.VarChar(50)
+  decision_org         String?     @db.VarChar(50)
+  decision_adoptada    String?     @db.VarChar(50)
+  p_empleado           p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_sanciones_p_empleado")
+  n_sanciones          n_sanciones @relation(fields: [id_sancion], references: [id_sancion], onUpdate: NoAction, map: "FKp_sancione143312")
+
+  @@index([id_sancion], map: "iid_sancion_p_sanciones")
+  @@index([no_interno], map: "ino_interno_p_sanciones")
+}
+
+model p_tarjeta_asistencia {
+  id                 Int          @id(map: "PK_p_tarjeta_asistencia") @default(autoincrement())
+  no_interno         String       @db.VarChar(7)
+  dia_semana         String       @db.VarChar(50)
+  fecha              DateTime     @db.DateTime
+  fid_turno          Int?
+  t_hora_entrada     String       @db.VarChar(10)
+  t_hora_salida      String       @db.VarChar(10)
+  t_tiempo_descanso  String?      @db.VarChar(10)
+  m_hora_entrada     String       @db.VarChar(10)
+  m_hora_salida      String       @db.VarChar(10)
+  tiempo_ausente     String       @db.VarChar(10)
+  fid_ausencia       Int?
+  fid_periodo        Int
+  orden              Int?
+  periodo_incidencia Int          @default(0, map: "DF_p_tarjeta_asistencia_periodo_incidencia")
+  n_ausencias        n_ausencias? @relation(fields: [fid_ausencia], references: [id_ausencia], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_tarjeta_asistencia_n_ausencias")
+  n_periodo          n_periodo    @relation(fields: [fid_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_p_tarjeta_asistencia_n_periodo")
+  n_turnos           n_turnos?    @relation(fields: [fid_turno], references: [id_turno], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_tarjeta_asistencia_n_turnos")
+  p_empleado         p_empleado   @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_tarjeta_asistencia_p_empleado")
+}
+
+model p_temp_incidencia {
+  id_incidencia      Int          @id(map: "PK_p_temp_incidencia") @default(autoincrement())
+  no_interno         String       @db.VarChar(7)
+  id_brigada         Int?
+  fecha              DateTime     @db.DateTime
+  hora_entrada_turno String       @db.VarChar(10)
+  hora_entrada       String       @db.VarChar(10)
+  hora_salida_turno  String       @db.VarChar(10)
+  hora_salida        String       @db.VarChar(10)
+  tiempo             DateTime?    @db.DateTime
+  id_ausencia        Int?
+  n_ausencias        n_ausencias? @relation(fields: [id_ausencia], references: [id_ausencia], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_temp_incidencia_n_ausencias")
+  n_brigadas         n_brigadas?  @relation(fields: [id_brigada], references: [id_brigada], onDelete: NoAction, onUpdate: NoAction, map: "FK_p_temp_incidencia_n_brigadas")
+  p_empleado         p_empleado   @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_p_temp_incidencia_p_empleado")
+
+  @@index([id_ausencia], map: "iid_ausencia_p_temp_incidencia")
+  @@index([id_brigada], map: "iid_brigada_p_temp_incidencia")
+  @@index([no_interno], map: "ino_interno_p_temp_incidencia")
+}
+
+model p_terceros {
+  credencial  Int        @id(map: "PK_p_terceros")
+  nombre      String     @db.VarChar(Max)
+  huella0     String?    @db.NVarChar(Max)
+  huella1     String?    @db.NVarChar(Max)
+  huella2     String?    @db.NVarChar(Max)
+  huella3     String?    @db.NVarChar(Max)
+  huella4     String?    @db.NVarChar(Max)
+  huella5     String?    @db.NVarChar(Max)
+  huella6     String?    @db.NVarChar(Max)
+  huella7     String?    @db.NVarChar(Max)
+  huella8     String?    @db.NVarChar(Max)
+  huella9     String?    @db.NVarChar(Max)
+  fid_empresa Int
+  n_empresas  n_empresas @relation(fields: [fid_empresa], references: [id_empresa], onUpdate: NoAction, map: "FK_p_terceros_n_empresas")
+
+  @@index([fid_empresa], map: "ifid_empresa_p_terceros")
+}
+
+model p_tiempo_a_prueba {
+  id_tipempo_a_prueba Int             @id(map: "PK__p_tiempo_a_prueb__4B7734FF") @default(autoincrement())
+  tiempo_dias         Int
+  id_categ            Int
+  id_tipo_contrato    Int
+  n_cat_ocupacion     n_cat_ocupacion @relation(fields: [id_categ], references: [id_categ], onUpdate: NoAction, map: "FKp_tiempo_a219557")
+  n_contrato          n_contrato      @relation(fields: [id_tipo_contrato], references: [id_tipo_contrato], onUpdate: NoAction, map: "FKp_tiempo_a876296")
+
+  @@index([id_categ], map: "iid_categ_p_tiempo_a_prueba")
+  @@index([id_tipo_contrato], map: "iid_tipo_contrato_p_tiempo_a_prueba")
+}
+
+model parametros_generales {
+  id_pgenerales          Int      @id(map: "PK_parametros_generales")
+  instal                 Boolean
+  trab_resultados        Boolean
+  cod_pais               String   @db.VarChar(3)
+  provincia              Int
+  municipio              Int
+  exist_jornaleros       Boolean
+  enti_aporte            Boolean
+  enti_perfecc           Boolean
+  porcient_perfecc       Decimal  @db.Decimal(3, 1)
+  id_periodo             Int?
+  tipo_pago              Int
+  pago_tm_mn             Boolean
+  pago_tm_div            Boolean
+  pago_subsidio_adelant  Boolean
+  aport_pago_vac         Int
+  grupo_pago             Int
+  pago_div               Boolean
+  moneda_pago_div        Int
+  moneda_pago_mn         Int
+  limit_total_retenc     Int
+  pf_hecho_por           String   @db.VarChar(7)
+  pf_aprobad_por         String   @db.VarChar(7)
+  pf_contab_por          String   @db.VarChar(7)
+  pf_revisad_por         String   @db.VarChar(7)
+  enlace_contab          Int
+  pfn_hecho_por          String   @db.VarChar(7)
+  pfn_aprob_por          String   @db.VarChar(7)
+  porcient_contrib_seg   Decimal  @db.Decimal(3, 1)
+  porcient_imp_ft        Decimal  @db.Decimal(3, 1)
+  consec_nomina          Int?
+  id_enti                Int?
+  enc_pago2              String?  @db.VarChar(12)
+  enc_pago3              String?  @db.VarChar(12)
+  enc_pago4              String?  @db.VarChar(12)
+  conc_pago2             Int?
+  conc_pago3             Int?
+  conc_pago4             Int?
+  nom_enti_tmag          String?  @db.VarChar(6)
+  neto_ok                Boolean  @default(true, map: "DF_parametros_generales_neto_ok")
+  siclamon               Boolean  @default(false, map: "DF_parametros_generales_siclamon")
+  porcient_seg_cort      Decimal  @default(1.5, map: "DF_parametros_generales_porcient_seg_cort") @db.Decimal(3, 1)
+  camino_salva           String?  @db.VarChar(255)
+  contabilidad           String?  @db.VarChar(50)
+  estructura_dbf         Int?
+  enlace_tempus          Boolean  @default(false, map: "DF_parametros_generales_enlace_tempus")
+  logo                   Bytes?   @db.Image
+  emp_mixta              Boolean  @default(false, map: "DF_parametros_generales_emp_mixta")
+  comision_bancaria      Decimal? @db.Decimal(7, 2)
+  coeficiente_aprob      Decimal? @db.Decimal(7, 2)
+  enlace_zunhr           Boolean  @default(false, map: "DF_parametros_generales_enlace_zunhr")
+  cod_sucursal           String?  @db.VarChar(4)
+  cod_REUP               String?  @db.VarChar(50)
+  nom_CUC_juntas         Boolean?
+  nombre_enti_report     Boolean  @default(false, map: "DF_parametros_generales_nombre_enti_report")
+  redistrib_monto        Boolean  @default(true, map: "DF_parametros_generales_redistrib_monto")
+  entidad_aporta_ss      Boolean  @default(false, map: "DF_parametros_generales_entidad_aporta_ss")
+  aporte_ss              Decimal  @default(0, map: "DF_parametros_generales_aporte_ss") @db.Decimal(7, 2)
+  impuesto1              Boolean  @default(false, map: "DF_parametros_generales_impuesto1")
+  porciento1             Decimal  @default(0, map: "DF_parametros_generales_porciento1") @db.Decimal(7, 2)
+  rango1                 Decimal  @default(0, map: "DF_parametros_generales_rango1") @db.Decimal(9, 2)
+  rango2                 Decimal  @default(0, map: "DF_parametros_generales_rango2") @db.Decimal(9, 2)
+  impuesto2              Boolean  @default(false, map: "DF_parametros_generales_impuesto2")
+  porciento2             Decimal  @default(0, map: "DF_parametros_generales_porciento2") @db.Decimal(7, 2)
+  rango3                 Decimal  @default(0, map: "DF_parametros_generales_rango3") @db.Decimal(9, 2)
+  rango4                 Decimal  @default(0, map: "DF_parametros_generales_rango4") @db.Decimal(9, 2)
+  imp_procesados         Boolean  @default(false, map: "DF_parametros_generales_imp_procesados")
+  aporte_new_forma       Boolean  @default(false, map: "DF_parametros_generales_aporte_new_forma")
+  horas_mes_jornaleros   Decimal  @default(0, map: "DF_parametros_generales_horas_mes_jornaleros") @db.Decimal(9, 4)
+  refrescar_incidencias  Boolean  @default(false, map: "DF_parametros_generales_refrescar_pr")
+  importe_min_maternidad Decimal  @default(225.00, map: "DF_parametros_generales_importe_min_maternidad") @db.Decimal(18, 2)
+  presupuestada          Boolean  @default(false, map: "DF__parametro__presu__3B86B74D")
+  rango1aporte           Decimal  @default(0, map: "DF__parametro__rango__3C7ADB86") @db.Decimal(9, 2)
+  rango2aporte           Decimal  @default(0, map: "DF__parametro__rango__3D6EFFBF") @db.Decimal(9, 2)
+  porciento1aporte       Decimal  @default(0, map: "DF__parametro__porci__3E6323F8") @db.Decimal(7, 2)
+  rango3aporte           Decimal  @default(0, map: "DF__parametro__rango__3F574831") @db.Decimal(9, 2)
+  rango4aporte           Decimal  @default(0, map: "DF__parametro__rango__404B6C6A") @db.Decimal(9, 2)
+  porciento2aporte       Decimal  @default(0, map: "DF__parametro__porci__413F90A3") @db.Decimal(7, 2)
+  aporteempresa          Boolean  @default(false, map: "DF__parametro__aport__4233B4DC")
+  Paga_vaca_seg_social   Boolean  @default(false, map: "DF__parametro__Paga___32724E5F")
+  Paga_vaca_imp          Boolean  @default(false, map: "DF__parametro__Paga___33667298")
+  subsidiofondotiempo    Boolean  @default(false, map: "DF__parametro__subsi__3E590257")
+  aportexrangos          Boolean  @default(false, map: "DF__parametro__aport__71F0E252")
+}
+
+model parametros_rh {
+  id                  Int       @id(map: "PK_parametros_rh") @default(autoincrement())
+  install             Boolean?
+  id_entidad          Int?
+  codigo_entidad      String?   @db.VarChar(50)
+  municipio_entid     Int?
+  tipo_pago_entidad   Int?
+  direccion_entidad   String?   @db.VarChar(Max)
+  telefono_entidad    String?   @db.VarChar(50)
+  entidad_perfecc     Boolean?
+  porciento_aporte    Int?
+  trab_aportan_ss     Boolean?
+  hecho_por           String?   @db.VarChar(50)
+  aprobador_por       String?   @db.VarChar(50)
+  director_entidad    String?   @db.VarChar(50)
+  especialista_rh     String?   @db.VarChar(50)
+  url_salva           String?   @db.VarChar(Max)
+  enc_pago2           String?   @db.VarChar(50)
+  enc_pago3           String?   @db.VarChar(50)
+  enc_pago4           String?   @db.VarChar(50)
+  id_pago2            Int?      @default(0, map: "DF_parametros_rh_id_pago2")
+  id_pago3            Int?      @default(0, map: "DF_parametros_rh_id_pago3")
+  id_pago4            Int?      @default(0, map: "DF_parametros_rh_id_pago4")
+  revisado_por        String?   @db.VarChar(50)
+  especialista_nomina String?   @db.VarChar(50)
+  registrado_por      String?   @db.VarChar(50)
+  alerta_sanciones    Int?
+  logo                Bytes?    @db.Image
+  enlace_zunpr        Boolean?
+  marca_procesada     Boolean?
+  carga_periodo       Boolean?  @default(false, map: "DF_parametros_rh_carga_periodo")
+  usa_frecuencia      Boolean   @default(false, map: "DF_parametros_rh_usa_frecuencia")
+  tar_periodo         Boolean   @default(false, map: "DF_parametros_rh_tar_periodo")
+  fecha_carga         DateTime? @db.DateTime
+  emp_mixta           Boolean   @default(false, map: "DF_parametros_rh_emp_mixta")
+  refrescar_hr        Boolean   @default(false, map: "DF_parametros_rh_refrescar_hr")
+  ZK_reloj            Boolean   @default(false, map: "DF_parametros_rh_ZK_reloj")
+  Bio_reloj           Boolean   @default(false, map: "DF_parametros_rh_Bio_reloj")
+}
+
+model ph_empleado {
+  id         Int        @id(map: "PK_ph_empleado") @default(autoincrement())
+  no_interno String     @db.VarChar(7)
+  id_periodo Int
+  n_periodo  n_periodo  @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_ph_empleado_n_periodo")
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_ph_empleado_p_empleado")
+}
+
+model ph_incidencias {
+  id_incidencias Int         @id(map: "PK__ph_incidencias__2B90AE69") @default(autoincrement())
+  fecha          DateTime    @db.DateTime
+  tiempo         Decimal     @db.Decimal(7, 4)
+  pagado         Boolean
+  no_interno     String      @db.VarChar(7)
+  id_peri        Int
+  id_ausencia    Int
+  n_ausencias    n_ausencias @relation(fields: [id_ausencia], references: [id_ausencia], onUpdate: NoAction, map: "FK_ph_incidencias_n_ausencias")
+  n_periodo      n_periodo   @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FK_ph_incidencias_n_periodo")
+  p_empleado     p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_ph_incidencias_p_empleado")
+}
+
+model ph_sanciones {
+  id_sanciones         Int         @id(map: "PK_ph_sanciones") @default(autoincrement())
+  no_resolucion        String      @db.VarChar(30)
+  fecha_creacion       DateTime    @db.DateTime
+  fecha_notificacion   DateTime    @db.DateTime
+  fecha_fin            DateTime    @db.DateTime
+  fecha_rehabilitacion DateTime    @db.DateTime
+  id_sancion           Int
+  no_interno           String      @db.VarChar(7)
+  descripcion          String?     @db.Text
+  causal               Int?
+  reclamada_ojlb       Boolean     @default(false, map: "DF_ph_sanciones_reclamada_ojlb")
+  causal_recl          Int?
+  quien_demanda        String?     @db.VarChar(50)
+  pide_revision        String?     @db.VarChar(50)
+  decision_org         String?     @db.VarChar(50)
+  decision_adoptada    String?     @db.VarChar(50)
+  fid_sancion          Int
+  n_sanciones          n_sanciones @relation(fields: [id_sancion], references: [id_sancion], onUpdate: NoAction, map: "FK_ph_sanciones_n_sanciones")
+  p_empleado           p_empleado  @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_ph_sanciones_p_empleado")
+  sys_lista            sys_lista?  @relation(fields: [causal], references: [id_lista], onDelete: NoAction, onUpdate: NoAction, map: "FK_ph_sanciones_sys_lista")
+}
+
+model plan_p2 {
+  id_p2                Int          @id(map: "PK__plan_p2__4D5F7D71") @default(autoincrement())
+  cant_plaza_propuesta Int
+  cant_plaza_aprobada  Int
+  orden                Int
+  id_cargos            Int
+  id_unidad_org        Int
+  cant_plaza_cubiertas Int
+  nivel_preparacion    String?      @db.VarChar(5)
+  prioridad            Int?
+  c_ds                 Int?
+  c_d                  Int?
+  c_e                  Int?
+  t                    Int?
+  a                    Int?
+  s                    Int?
+  o                    Int?
+  n_cargos             n_cargos     @relation(fields: [id_cargos], references: [id_cargos], onUpdate: NoAction, map: "FK_plan_p2_n_cargos")
+  n_unidad_org         n_unidad_org @relation(fields: [id_unidad_org], references: [id_uorg], onUpdate: NoAction, map: "FKplan_p2767067")
+
+  @@index([id_cargos], map: "iid_cargos_plan_p2")
+  @@index([id_unidad_org], map: "iid_unidad_org_plan_p2")
+}
+
+model promedios_temporal {
+  mes_anho   String     @db.VarChar(50)
+  salario    Decimal    @db.Decimal(18, 4)
+  vacaciones Decimal    @db.Decimal(18, 4)
+  subsidios  Decimal    @db.Decimal(18, 4)
+  garantias  Decimal    @db.Decimal(18, 4)
+  no_interno String     @db.VarChar(7)
+  orden      Int
+  p_empleado p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_promedios_temporal_p_empleado")
+
+  @@id([mes_anho, no_interno], map: "PK_promedios_temporal")
+}
+
+model reintegro_salario_indebido {
+  id_reinte                       Int                              @id(map: "PK_h_reintegro_salario_indebido")
+  no_interno                      String                           @db.VarChar(7)
+  tipo                            Int
+  concepto                        Int?
+  importe                         Float
+  tiempo                          Int
+  reintegros                      reintegros                       @relation(fields: [id_reinte], references: [id_reinte], onDelete: Cascade, map: "FK_h_reintegro_salario_indebido_h_reintegros")
+  reintegro_salario_indebido_deve reintegro_salario_indebido_deve?
+}
+
+model reintegro_salario_indebido_deve {
+  id_reinte                  Int                        @id(map: "PK_reintegro_salario_indebido_deve")
+  no_interno                 String                     @db.VarChar(7)
+  dias_laborados             Float
+  sal_deve                   Float
+  reintegro_salario_indebido reintegro_salario_indebido @relation(fields: [id_reinte], references: [id_reinte], onUpdate: NoAction, map: "FK_reintegro_salario_indebido_deve_reintegro_salario_indebido")
+}
+
+model reintegro_salario_no_reclamado {
+  id_reinte         Int
+  no_interno        String     @db.VarChar(7)
+  salario           Decimal    @db.Decimal(7, 2)
+  vacaciones        Decimal    @db.Decimal(7, 2)
+  subsidio          Decimal    @db.Decimal(7, 2)
+  garantia          Decimal    @db.Decimal(7, 2)
+  sal_reclamado_mn  Decimal    @db.Decimal(7, 2)
+  sal_reclamado_cuc Decimal    @db.Decimal(7, 2)
+  cuc               Decimal    @db.Decimal(7, 2)
+  pagado            Boolean
+  aportado          Boolean
+  reintegros        reintegros @relation(fields: [id_reinte], references: [id_reinte], onDelete: Cascade, map: "FK_h_reintegro_salario_reclamado_h_reintegros")
+
+  @@id([id_reinte, no_interno], map: "PK_h_reintegro_salario_reclamado")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model reintegro_salario_no_reclamado_tmp {
+  id_reinte         Int
+  no_interno        String     @db.VarChar(7)
+  salario           Decimal    @db.Decimal(7, 2)
+  vacaciones        Decimal    @db.Decimal(7, 2)
+  subsidio          Decimal    @db.Decimal(7, 2)
+  garantia          Decimal    @db.Decimal(7, 2)
+  sal_reclamado_mn  Decimal    @db.Decimal(7, 2)
+  sal_reclamado_cuc Decimal    @db.Decimal(7, 2)
+  cuc               Decimal    @db.Decimal(7, 2)
+  pagado            Boolean
+  aportado          Boolean
+  num_nominilla     Int?
+  p_empleado        p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_reintegro_salario_no_reclamado_tmp_p_empleado")
+  reintegros        reintegros @relation(fields: [id_reinte], references: [id_reinte], onUpdate: NoAction, map: "FK_reintegro_salario_no_reclamado_tmp_reintegros")
+
+  @@ignore
+}
+
+model reintegros {
+  id_reinte                          Int                                  @id(map: "PK_h_reintegros") @default(autoincrement())
+  id_peri                            Int
+  num_reinte                         String                               @db.VarChar(10)
+  fecha                              DateTime                             @db.DateTime
+  tipo                               String                               @db.Char(1)
+  cuc                                Boolean?
+  contabilizado                      Boolean?
+  id_nominilla                       Int?
+  h_reclamo_salario                  h_reclamo_salario[]
+  reintegro_salario_indebido         reintegro_salario_indebido?
+  reintegro_salario_no_reclamado     reintegro_salario_no_reclamado[]
+  reintegro_salario_no_reclamado_tmp reintegro_salario_no_reclamado_tmp[] @ignore
+  n_periodo                          n_periodo                            @relation(fields: [id_peri], references: [id_peri], onUpdate: NoAction, map: "FK_h_reintegros_n_periodo")
+
+  @@index([id_peri], map: "iid_peri_reintegros")
+}
+
+model reportes_rh {
+  id                 Int    @id(map: "PK_reportes_rh") @default(autoincrement())
+  reporte            String @db.VarChar(Max)
+  columna            String @db.VarChar(Max)
+  encabezado_columna String @db.VarChar(Max)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model salario_scala {
+  incidencia       Int
+  no_interno       String  @db.VarChar(7)
+  Nombre_apellidos String  @db.VarChar(152)
+  descripcion      String? @db.VarChar(50)
+  tarifa_diaria    Float
+  dias_lab         Int
+  salario_escalar  Float
+
+  @@ignore
+}
+
+model sub_mayor_ret {
+  num_interno   String?        @db.VarChar(7)
+  num_retencion String         @db.VarChar(30)
+  cod_ret       Int?
+  id_periodo    Int
+  saldo_ini     Decimal?       @db.Decimal(10, 2)
+  reten_desc    Decimal?       @db.Decimal(7, 2)
+  recargo       Decimal?       @db.Decimal(7, 2)
+  ajuste        Decimal?       @db.Decimal(10, 2)
+  saldo_final   Decimal?       @db.Decimal(7, 2)
+  id_nominilla  Int?
+  n_periodo     n_periodo      @relation(fields: [id_periodo], references: [id_peri], onUpdate: NoAction, map: "FK_sub_mayor_ret_n_periodo")
+  n_retenciones n_retenciones? @relation(fields: [cod_ret], references: [id_rete], onDelete: NoAction, onUpdate: NoAction, map: "FK_sub_mayor_ret_n_retenciones")
+
+  @@id([num_retencion, id_periodo], map: "PK_sub_mayor_ret")
+}
+
+model sys_def_lista {
+  id_def_lista Int         @id(map: "PK_sys_def_lista") @default(autoincrement())
+  lista        String      @db.VarChar(150)
+  modulo       Int
+  sys_lista    sys_lista[]
+}
+
+model sys_lista {
+  id_lista                                                         Int                      @id(map: "PK_sys_lista") @default(autoincrement())
+  id_def_lista                                                     Int
+  descripcion                                                      String                   @db.VarChar(150)
+  con_apunte_con_apunte_id_categoriaTosys_lista                    con_apunte[]             @relation("con_apunte_id_categoriaTosys_lista")
+  con_apunte_con_apunte_id_subcategoriaTosys_lista                 con_apunte[]             @relation("con_apunte_id_subcategoriaTosys_lista")
+  con_plantilla_cabecera                                           con_plantilla_cabecera[]
+  con_tipo_importe_con_tipo_importe_id_operacion_nominaTosys_lista con_tipo_importe[]       @relation("con_tipo_importe_id_operacion_nominaTosys_lista")
+  con_tipo_importe_con_tipo_importe_id_categoriaTosys_lista        con_tipo_importe[]       @relation("con_tipo_importe_id_categoriaTosys_lista")
+  n_ausencias                                                      n_ausencias[]
+  n_escolaridad                                                    n_escolaridad[]
+  n_retenciones                                                    n_retenciones[]
+  p_empleado                                                       p_empleado[]
+  ph_sanciones                                                     ph_sanciones[]
+  sys_def_lista                                                    sys_def_lista            @relation(fields: [id_def_lista], references: [id_def_lista], onUpdate: NoAction, map: "FK_sys_lista_sys_def_lista")
+
+  @@index([id_def_lista], map: "iid_def_lista_sys_lista")
+}
+
+model syswintr {
+  id         Int       @id(map: "PK_syswintr") @default(autoincrement())
+  mayor      Int
+  menor      Int
+  cambiosapp Int
+  cambiosbd  Int
+  fecha      DateTime? @db.DateTime
+}
+
+model syswintr1 {
+  id         Int       @id(map: "PK_syswintr1") @default(autoincrement())
+  mayor      Int
+  menor      Int
+  cambiosapp Int
+  cambiosbd  Int
+  fecha      DateTime? @db.DateTime
+}
+
+model tarj_nominilla {
+  cto_gto        String     @db.Char(4)
+  empresa        String     @db.Char(3)
+  no_interno     String     @id(map: "PK_tarj_nominilla") @db.VarChar(7)
+  nombre         String     @db.VarChar(150)
+  no_expediente  String     @db.VarChar(11)
+  cuenta_tm_cup  String     @db.VarChar(16)
+  cuenta_tm_cuc  String     @db.VarChar(16)
+  p              String     @db.VarChar(3)
+  identif_banco  String     @db.VarChar(2)
+  neto           Decimal    @db.Decimal(18, 2)
+  nombre_empresa String     @db.VarChar(30)
+  incluido       Boolean
+  p_empleado     p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_tarj_nominilla_p_empleado")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tarj_reporte {
+  cto_gto       String     @db.VarChar(11)
+  empresa       String     @db.VarChar(16)
+  no_interno    String     @db.VarChar(7)
+  nombre        String     @db.VarChar(255)
+  no_expediente String     @db.VarChar(11)
+  cuenta_tm_cup String?    @db.VarChar(16)
+  cuenta_tm_cuc String?    @db.VarChar(16)
+  p             String?    @db.VarChar(11)
+  identif_banco String?    @db.VarChar(7)
+  neto          Decimal?   @db.Decimal(18, 2)
+  nombre_peri   String     @db.VarChar(16)
+  p_empleado    p_empleado @relation(fields: [no_interno], references: [no_interno], onDelete: Cascade, map: "FK_tarj_reporte_p_empleado")
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model terminales {
+  terminal String @db.VarChar(50)
+  src      Int
+
+  @@ignore
+}
