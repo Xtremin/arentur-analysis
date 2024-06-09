@@ -57,7 +57,7 @@ const customTheme: CustomFlowbiteTheme["navbar"] = {
 };
 export default function Navbarc() {
   return (
-    <Navbar fluid rounded theme={customTheme}>
+    <Navbar fluid theme={customTheme} className="">
       <NavbarBrand as={Link} href="/">
         <Image
           src="/th.jpeg"
@@ -75,7 +75,9 @@ export default function Navbarc() {
         <NavbarLink as={Link} href="/empleados">
           Trabajadores
         </NavbarLink>
-        <NavbarLink href="#">Services</NavbarLink>
+        <NavbarLink as={Link} href="/nomina">
+          Nómina
+        </NavbarLink>
         <NavbarLink href="#">Pricing</NavbarLink>
         <NavbarLink href="#">Contact</NavbarLink>
       </NavbarCollapse>
